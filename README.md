@@ -136,3 +136,14 @@ All endpoints are under `/api` and need a `Bearer` token, except the `/auth` end
 | Users       | `GET /users`, `PATCH /users/{id}`, `PUT /users/{id}/student`                  | Super admin   |
 
 Paginated endpoints accept `page` (0-based) and `size` (max 200).
+
+## Deployment (free tier)
+
+| Part     | Host                               | Config                                   |
+| -------- | ---------------------------------- | ---------------------------------------- |
+| Database | [Neon](https://neon.tech)          | Free Postgres, region Frankfurt          |
+| API      | [Render](https://render.com)       | [`render.yaml`](render.yaml) Blueprint, Docker, free plan |
+| Web app  | [Vercel](https://vercel.com)       | Root directory `frontend`, [`vercel.json`](frontend/vercel.json) |
+| Email    | Gmail SMTP                         | Google App Password                      |
+
+Render's free plan sleeps after 15 minutes without traffic; the first request afterwards takes about a minute while the API starts. `GET /api/health` is the health check.

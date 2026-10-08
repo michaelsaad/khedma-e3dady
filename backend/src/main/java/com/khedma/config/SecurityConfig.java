@@ -35,7 +35,7 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/health").permitAll()
                         // Pending/rejected users can still read their own account status.
                         .requestMatchers("/api/me").authenticated()
                         // Any approved account (USER and up).
