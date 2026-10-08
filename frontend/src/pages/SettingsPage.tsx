@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Church, HandHeart } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ReasonsManager } from "@/components/ReasonsManager";
 import { Button, Card, ErrorState, Field, Input, PageHeader, Select, Spinner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { DAYS, dayLabel, errorMessage, fieldErrors, formatDateTime } from "@/lib/i18n";
@@ -17,7 +18,10 @@ export default function SettingsPage() {
       ) : settings.isError ? (
         <ErrorState message={errorMessage(settings.error)} onRetry={() => settings.refetch()} />
       ) : (
-        <SettingsForm key={settings.data.updatedAt} settings={settings.data} />
+        <div className="space-y-4">
+          <SettingsForm key={settings.data.updatedAt} settings={settings.data} />
+          <ReasonsManager />
+        </div>
       )}
     </>
   );

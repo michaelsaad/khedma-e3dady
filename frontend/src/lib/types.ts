@@ -81,6 +81,13 @@ export interface Transaction {
   createdAt: string;
 }
 
+export interface PointReason {
+  id: number;
+  label: string;
+  defaultAmount: number | null;
+  usageCount: number;
+}
+
 export interface Settings {
   massPoints: number;
   servicePoints: number;

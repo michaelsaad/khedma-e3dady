@@ -17,6 +17,7 @@ import com.khedma.group.GroupRepository;
 import com.khedma.group.StudentGroup;
 import com.khedma.points.PointsDtos.ManualPointsRequest;
 import com.khedma.points.PointsDtos.TransactionResponse;
+import com.khedma.points.reason.PointReasonRepository;
 import com.khedma.student.Student;
 import com.khedma.student.StudentRepository;
 import com.khedma.user.UserRepository;
@@ -35,14 +36,16 @@ public class PointsService {
     private final StudentRepository students;
     private final GroupRepository groups;
     private final UserRepository users;
+    private final PointReasonRepository reasons;
     private final Clock clock;
 
     public PointsService(PointTransactionRepository transactions, StudentRepository students,
-                         GroupRepository groups, UserRepository users, Clock clock) {
+                         GroupRepository groups, UserRepository users, PointReasonRepository reasons, Clock clock) {
         this.transactions = transactions;
         this.students = students;
         this.groups = groups;
         this.users = users;
+        this.reasons = reasons;
         this.clock = clock;
     }
 
@@ -58,6 +61,7 @@ public class PointsService {
         tx.setStudent(student);
         student.setPointsBalance(student.getPointsBalance() + delta);
         tx.setBalanceAfter(student.getPointsBalance());
+        reasons.incrementUsage(tx.getNotes());
         return TransactionResponse.of(transactions.save(tx));
     }
 
@@ -70,6 +74,7 @@ public class PointsService {
         tx.setGroup(group);
         group.setPointsBalance(group.getPointsBalance() + delta);
         tx.setBalanceAfter(group.getPointsBalance());
+        reasons.incrementUsage(tx.getNotes());
         return TransactionResponse.of(transactions.save(tx));
     }
 

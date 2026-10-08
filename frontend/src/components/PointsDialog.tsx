@@ -3,7 +3,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { api, ApiError } from "@/lib/api";
 import { errorMessage, fieldErrors, formatNumber, formatSigned } from "@/lib/i18n";
-import type { ManualKind, Page, Transaction } from "@/lib/types";
+import type { ManualKind, Page, PointReason, Transaction } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { TransactionList } from "./TransactionList";
 import { Button, Dialog, Field, Input, Pagination, Segmented, Spinner } from "./ui";
 
@@ -46,19 +47,38 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
   const [kind, setKind] = useState<ManualKind>("ADD");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
+  const [saveReason, setSaveReason] = useState(false);
+  const reasons = useQuery({ queryKey: ["point-reasons"], queryFn: () => api.get<PointReason[]>("/point-reasons") });
+
+  const trimmed = notes.trim();
+  const isSavedReason = reasons.data?.some((r) => r.label === trimmed) ?? false;
+
+  const pickReason = (reason: PointReason) => {
+    setNotes(reason.label);
+    if (reason.defaultAmount && kind !== "RESET") setAmount(String(reason.defaultAmount));
+  };
 
   const submit = useMutation({
-    mutationFn: () =>
-      api.post<Transaction>(`/${target.type}/${target.id}/points`, {
+    mutationFn: async () => {
+      const tx = await api.post<Transaction>(`/${target.type}/${target.id}/points`, {
         kind,
         amount: kind === "RESET" ? null : Number(amount),
         notes,
-      }),
+      });
+      if (saveReason && trimmed && !isSavedReason) {
+        // Best effort: the transaction already succeeded, so a failed save shouldn't block it.
+        await api
+          .post("/point-reasons", { label: trimmed, defaultAmount: kind === "RESET" ? null : Number(amount) || null })
+          .catch(() => toast.warning("اتسجلت النقط، بس السبب متحفظش في القايمة"));
+      }
+      return tx;
+    },
     onSuccess: (tx) => {
       toast.success(`${target.name}: ${formatSigned(tx.amount)} نقطة · الرصيد ${formatNumber(tx.balanceAfter)}`);
       queryClient.invalidateQueries({ queryKey: [target.type] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["point-reasons"] });
       onDone();
     },
     onError: (error) => {
@@ -95,8 +115,36 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
         </p>
       )}
       <Field label="السبب" error={errors.notes}>
-        <Input required maxLength={200} placeholder="مثلًا: مسابقة الكتاب المقدس" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Input required maxLength={200} placeholder="اختار من تحت أو اكتب سبب جديد" value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
+
+      {reasons.data && reasons.data.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {reasons.data.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => pickReason(r)}
+              className={cn(
+                "rounded-full border px-3 py-1.5 text-sm transition-colors",
+                r.label === trimmed
+                  ? "border-brand-600 bg-brand-600 text-white"
+                  : "border-stone-200 bg-white text-stone-700 hover:border-brand-300 hover:bg-brand-50",
+              )}
+            >
+              {r.label}
+              {r.defaultAmount && kind !== "RESET" && <span className="ms-1 opacity-70 tabular">({formatNumber(r.defaultAmount)})</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {trimmed && !isSavedReason && (
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
+          <input type="checkbox" className="size-4 accent-brand-700" checked={saveReason} onChange={(e) => setSaveReason(e.target.checked)} />
+          احفظ السبب ده في القايمة عشان أختاره بعد كده
+        </label>
+      )}
       <Button type="submit" className="w-full" variant={kind === "ADD" ? "primary" : "danger"} loading={submit.isPending}>
         {kind === "ADD" ? "إضافة النقط" : kind === "DEDUCT" ? "خصم النقط" : "تصفير الرصيد"}
       </Button>

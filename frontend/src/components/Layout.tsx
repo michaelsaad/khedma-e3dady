@@ -1,6 +1,6 @@
 import {
   CalendarCheck,
-  Coins,
+  History,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -32,8 +32,8 @@ const NAV: NavItem[] = [
   { to: "/me", label: "نقطي", icon: Star, role: "USER", requiresLink: true },
   { to: "/attendance", label: "الحضور", icon: CalendarCheck, role: "ADMIN" },
   { to: "/students", label: "المخدومين", icon: Users, role: "ADMIN" },
+  { to: "/transactions", label: "سجل النقط", icon: History, role: "ADMIN" },
   { to: "/groups", label: "الجروبات", icon: UsersRound, role: "ADMIN" },
-  { to: "/transactions", label: "النقط", icon: Coins, role: "ADMIN" },
   { to: "/users", label: "المستخدمين", icon: ShieldCheck, role: "SUPER_ADMIN" },
   { to: "/settings", label: "الإعدادات", icon: Settings, role: "ADMIN" },
 ];

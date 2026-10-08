@@ -2,6 +2,7 @@ package com.khedma.attendance;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -26,6 +27,9 @@ import com.khedma.points.PointsDtos.ManualKind;
 import com.khedma.points.PointsDtos.ManualPointsRequest;
 import com.khedma.points.PointsService;
 import com.khedma.points.TransactionType;
+import com.khedma.points.reason.PointReasonService;
+import com.khedma.points.reason.PointReasonService.ReasonRequest;
+import com.khedma.points.reason.PointReasonService.ReasonResponse;
 import com.khedma.settings.SettingsDtos.UpdateSettingsRequest;
 import com.khedma.settings.SettingsService;
 import com.khedma.student.Grade;
@@ -35,6 +39,8 @@ import com.khedma.user.AppUser;
 import com.khedma.user.Role;
 import com.khedma.user.UserRepository;
 import com.khedma.user.UserStatus;
+
+import jakarta.persistence.EntityManager;
 
 @SpringBootTest
 @Import(TestcontainersConfig.class)
@@ -50,6 +56,8 @@ class AttendancePointsTest {
     @Autowired UserRepository users;
     @Autowired PointTransactionRepository transactions;
     @Autowired DashboardService dashboardService;
+    @Autowired PointReasonService reasonService;
+    @Autowired EntityManager entityManager;
 
     Long adminId;
     Student student;
@@ -155,6 +163,22 @@ class AttendancePointsTest {
         assertThat(view.previousMeeting()).isEqualTo(LocalDate.of(2026, 9, 25));
         assertThat(view.nextMeeting()).isEqualTo(OCT_9);
         assertThat(attendanceService.forMeeting(OCT_9).nextMeeting()).isNull();
+    }
+
+    @Test
+    void savedReasonsAreRankedByUsage() {
+        reasonService.create(new ReasonRequest("Quiz", 5));
+        reasonService.create(new ReasonRequest("Bible verse", null));
+        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 5, "Bible verse"), adminId);
+        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 5, "Something else"), adminId);
+        entityManager.flush();
+        entityManager.clear(); // the usage counter is a bulk update; read fresh rows like a new request would
+
+        assertThat(reasonService.list())
+                .extracting(ReasonResponse::label, ReasonResponse::usageCount)
+                .containsExactly(tuple("Bible verse", 1), tuple("Quiz", 0));
+        assertThatThrownBy(() -> reasonService.create(new ReasonRequest("Quiz", null)))
+                .extracting("code").isEqualTo(ErrorCode.REASON_ALREADY_EXISTS);
     }
 
     @Test

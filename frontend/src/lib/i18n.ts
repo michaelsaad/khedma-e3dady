@@ -36,6 +36,8 @@ const ERRORS: Record<string, string> = {
   INSUFFICIENT_BALANCE: "الرصيد مش كفاية للخصم",
   BALANCE_ALREADY_ZERO: "الرصيد صفر بالفعل",
   INVALID_SEASON_RANGE: "نهاية السنة لازم تكون بعد بدايتها",
+  REASON_NOT_FOUND: "السبب ده مش موجود",
+  REASON_ALREADY_EXISTS: "السبب ده موجود في القايمة بالفعل",
 };
 
 /** Arabic text for validation constraint codes on a field. */

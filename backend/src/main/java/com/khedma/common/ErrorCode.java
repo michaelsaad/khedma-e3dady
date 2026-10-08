@@ -48,6 +48,8 @@ public enum ErrorCode {
     AMOUNT_REQUIRED(HttpStatus.BAD_REQUEST, "Amount is required"),
     INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "Balance is too low for this deduction"),
     BALANCE_ALREADY_ZERO(HttpStatus.BAD_REQUEST, "Balance is already zero"),
+    REASON_NOT_FOUND(HttpStatus.NOT_FOUND, "Reason not found"),
+    REASON_ALREADY_EXISTS(HttpStatus.CONFLICT, "A reason with this text already exists"),
 
     // Settings
     INVALID_SEASON_RANGE(HttpStatus.BAD_REQUEST, "Season end must be after season start");
