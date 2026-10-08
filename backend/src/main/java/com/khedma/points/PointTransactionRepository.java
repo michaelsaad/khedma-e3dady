@@ -1,0 +1,33 @@
+package com.khedma.points;
+
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import com.khedma.attendance.AttendanceKind;
+
+public interface PointTransactionRepository extends JpaRepository<PointTransaction, Long> {
+
+    /** Attendance awards for this attendance row and kind that have not been reversed yet. */
+    @Query("""
+            select t from PointTransaction t
+            where t.attendance.id = :attendanceId
+              and t.attendanceKind = :kind
+              and t.type = com.khedma.points.TransactionType.ATTENDANCE_AWARD
+              and not exists (select r.id from PointTransaction r where r.reverses = t)
+            """)
+    List<PointTransaction> findActiveAttendanceAwards(Long attendanceId, AttendanceKind kind);
+
+    @EntityGraph(attributePaths = {"student", "group", "createdBy"})
+    Page<PointTransaction> findAllByStudentId(Long studentId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"student", "group", "createdBy"})
+    Page<PointTransaction> findAllByGroupId(Long groupId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"student", "group", "createdBy"})
+    Page<PointTransaction> findAllBy(Pageable pageable);
+}

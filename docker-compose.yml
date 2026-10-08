@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: khedma-postgres
+    environment:
+      POSTGRES_DB: khedma
+      POSTGRES_USER: khedma
+      POSTGRES_PASSWORD: khedma
+    ports:
+      - "5433:5432"
+    volumes:
+      - khedma-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U khedma -d khedma"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  khedma-pgdata:

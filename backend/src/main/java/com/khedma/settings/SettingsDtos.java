@@ -1,0 +1,42 @@
+package com.khedma.settings;
+
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalDate;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+
+public final class SettingsDtos {
+
+    private SettingsDtos() {}
+
+    public record SettingsResponse(
+            int massPoints,
+            int servicePoints,
+            LocalDate seasonStart,
+            LocalDate seasonEnd,
+            DayOfWeek meetingDay,
+            String updatedBy,
+            Instant updatedAt) {
+
+        static SettingsResponse of(AppSettings settings) {
+            return new SettingsResponse(
+                    settings.getMassPoints(),
+                    settings.getServicePoints(),
+                    settings.getSeasonStart(),
+                    settings.getSeasonEnd(),
+                    settings.getMeetingDay(),
+                    settings.getUpdatedBy() == null ? null : settings.getUpdatedBy().getDisplayName(),
+                    settings.getUpdatedAt());
+        }
+    }
+
+    public record UpdateSettingsRequest(
+            @NotNull(message = "اكتب نقاط القداس") @Min(value = 0, message = "النقاط لا تقل عن 0") @Max(value = 1000, message = "النقاط لا تزيد عن 1000") Integer massPoints,
+            @NotNull(message = "اكتب نقاط الخدمة") @Min(value = 0, message = "النقاط لا تقل عن 0") @Max(value = 1000, message = "النقاط لا تزيد عن 1000") Integer servicePoints,
+            @NotNull(message = "اختر بداية السنة") LocalDate seasonStart,
+            @NotNull(message = "اختر نهاية السنة") LocalDate seasonEnd,
+            @NotNull(message = "اختر يوم الاجتماع") DayOfWeek meetingDay) {}
+}
