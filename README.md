@@ -1,60 +1,98 @@
-# Khedma — حضور ونقاط مخدومين إعدادي
+# Khedma E3dady
 
-- `backend/` — Spring Boot 3.5 (Java 17) + PostgreSQL + Flyway
-- `frontend/` — (قريبًا) واجهة جديدة
+Attendance and points tracking for the e3dady (middle school) church service.
 
-## تشغيل الباك اند محليًا
+Admins record weekly attendance (service and mass), and points are distributed automatically. If attendance is unmarked, its points are rolled back.
+
+## Repository layout
+
+```
+khedma-e3dady/
+├── backend/             Spring Boot API
+├── frontend/            Web app (coming soon)
+└── docker-compose.yml   Local PostgreSQL
+```
+
+## Tech stack
+
+| Layer    | Technology                                        |
+| -------- | ------------------------------------------------- |
+| API      | Spring Boot 3.5, Java 17                          |
+| Database | PostgreSQL 16, Flyway migrations                  |
+| Auth     | Google sign-in and email/password, JWT            |
+| Tests    | JUnit 5, Testcontainers                           |
+
+## Getting started
+
+**Prerequisites:** Java 17+, Maven, Docker.
 
 ```bash
+# 1. Start PostgreSQL (port 5433)
 docker compose up -d
+
+# 2. Run the API (port 8080)
 cd backend
 mvn spring-boot:run
 ```
 
-الـ API على `http://localhost:8080`. الداتابيز على port `5433`.
-الاختبارات: `mvn test` (محتاجة Docker شغال).
+Run the tests (Docker must be running):
 
-## الإعدادات (environment variables)
+```bash
+cd backend
+mvn test
+```
 
-| المتغير | الوصف |
-|---|---|
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | اتصال PostgreSQL |
-| `JWT_SECRET` | 32 حرف على الأقل — لازم يتغير في الإنتاج |
-| `GOOGLE_CLIENT_ID` | OAuth Client ID من Google Cloud (لزرار الدخول بجوجل) |
-| `SUPER_ADMIN_EMAILS` | إيميلات المالك (مفصولة بفاصلة) — بتبقى SUPER_ADMIN عند الدخول بجوجل |
-| `CORS_ALLOWED_ORIGINS` | رابط الفرونت اند |
+## Configuration
 
-## الأدوار
+Configuration comes from environment variables. See [`backend/.env.example`](backend/.env.example).
 
-| الدور | الصلاحيات |
-|---|---|
-| `USER` | يشوف بياناته ونقاطه لو حسابه مربوط بمخدوم |
-| `ADMIN` | المخدومين، الجروبات، الحضور، النقاط، إعدادات التطبيق |
-| `SUPER_ADMIN` | كل ما سبق + إدارة المستخدمين والصلاحيات |
+| Variable               | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| `DB_URL`               | JDBC URL, e.g. `jdbc:postgresql://localhost:5433/khedma`     |
+| `DB_USERNAME`          | Database user                                                |
+| `DB_PASSWORD`          | Database password                                            |
+| `JWT_SECRET`           | Token signing key, at least 32 characters                    |
+| `GOOGLE_CLIENT_ID`     | OAuth client ID from Google Cloud Console                    |
+| `SUPER_ADMIN_EMAILS`   | Comma-separated owner emails, promoted on Google sign-in     |
+| `CORS_ALLOWED_ORIGINS` | Frontend origin(s), e.g. `http://localhost:3000`             |
 
-أي حساب جديد بيبدأ `PENDING` لحد ما الـ SUPER_ADMIN يوافق عليه.
+## Roles
 
-## النقاط الأوتوماتيك
+| Role          | Access                                                        |
+| ------------- | ------------------------------------------------------------- |
+| `USER`        | Their own points and attendance, once linked to a student     |
+| `ADMIN`       | Students, groups, attendance, points, app settings            |
+| `SUPER_ADMIN` | Everything above, plus user approval and role management      |
 
-عند حفظ الحضور، الباك اند بيكتب transaction لكل حضور (خدمة / قداس) بالقيمة من إعدادات التطبيق،
-والملاحظة زي: `حضور قداس يوم الجمعة 9 أكتوبر 2026`.
-لو اتشال الحضور، بيتعمل transaction عكسية بنفس القيمة الأصلية: `إلغاء حضور قداس يوم ...`.
-الحفظ أكتر من مرة ما بيكررش النقاط. نقاط الجروبات يدوي فقط.
+New accounts start as `PENDING` until a super admin approves them.
 
-## الـ API
+## Automatic points
 
-| Method | Path | الدور |
-|---|---|---|
-| POST | `/api/auth/register` · `/api/auth/login` · `/api/auth/google` | عام |
-| GET | `/api/me` | أي حساب مسجل |
-| GET | `/api/me/student` · `/api/me/transactions` | USER |
-| GET/PUT | `/api/settings` | ADMIN |
-| GET/POST | `/api/students` (بحث + pagination: `q, grade, groupId, page, size`) | ADMIN |
-| GET/PUT/DELETE | `/api/students/{id}` | ADMIN |
-| GET/POST | `/api/groups` · PUT `/api/groups/{id}` | ADMIN |
-| GET | `/api/attendance/meetings` | ADMIN |
-| GET/PUT | `/api/attendance/{date}` (عرض + حفظ جماعي) | ADMIN |
-| PUT | `/api/attendance/{date}/students/{studentId}` (حفظ فوري لمخدوم) | ADMIN |
-| POST | `/api/students/{id}/points` · `/api/groups/{id}/points` (`ADD / DEDUCT / RESET`) | ADMIN |
-| GET | `/api/transactions` · `/api/students/{id}/transactions` · `/api/groups/{id}/transactions` (pagination) | ADMIN |
-| GET | `/api/users` · PATCH `/api/users/{id}` · PUT `/api/users/{id}/student` | SUPER_ADMIN |
+Point values are set on the **App Settings** page (default: mass = 5, service = 2).
+
+- **Marking attendance** creates an `ATTENDANCE_AWARD` transaction. Its notes say the attendance type and the meeting date.
+- **Unmarking attendance** creates an `ATTENDANCE_REVERSAL` that cancels the original award.
+- **Saving the same attendance twice** does not award points again.
+- **Changing point values** only affects attendance recorded afterwards. Reversals always cancel the amount that was originally awarded.
+- **Group points** are added manually only.
+
+Manual transactions (`ADD`, `DEDUCT`, `RESET`) work for both students and groups.
+
+## API overview
+
+All endpoints are under `/api` and need a `Bearer` token, except the `/auth` endpoints.
+
+| Area        | Endpoints                                                                     | Role          |
+| ----------- | ----------------------------------------------------------------------------- | ------------- |
+| Auth        | `POST /auth/register`, `POST /auth/login`, `POST /auth/google`                | Public        |
+| Account     | `GET /me`, `GET /me/student`, `GET /me/transactions`                          | Signed in     |
+| Settings    | `GET /settings`, `PUT /settings`                                              | Admin         |
+| Students    | `GET /students` (search, paginated), `POST`, `GET/PUT/DELETE /students/{id}`  | Admin         |
+| Groups      | `GET /groups`, `POST /groups`, `PUT /groups/{id}`                             | Admin         |
+| Attendance  | `GET /attendance/meetings`, `GET/PUT /attendance/{date}`                      | Admin         |
+|             | `PUT /attendance/{date}/students/{studentId}` (save one student)              | Admin         |
+| Points      | `POST /students/{id}/points`, `POST /groups/{id}/points`                      | Admin         |
+| History     | `GET /transactions`, `/students/{id}/transactions`, `/groups/{id}/transactions` (paginated) | Admin |
+| Users       | `GET /users`, `PATCH /users/{id}`, `PUT /users/{id}/student`                  | Super admin   |
+
+Paginated endpoints accept `page` (0-based) and `size` (max 200).
