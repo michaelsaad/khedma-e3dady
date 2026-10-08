@@ -22,12 +22,12 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
             """)
     List<PointTransaction> findActiveAttendanceAwards(Long attendanceId, AttendanceKind kind);
 
-    @EntityGraph(attributePaths = {"student", "group", "createdBy"})
+    @EntityGraph(attributePaths = {"student", "group", "createdBy", "attendance"})
     Page<PointTransaction> findAllByStudentId(Long studentId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"student", "group", "createdBy"})
+    @EntityGraph(attributePaths = {"student", "group", "createdBy", "attendance"})
     Page<PointTransaction> findAllByGroupId(Long groupId, Pageable pageable);
 
-    @EntityGraph(attributePaths = {"student", "group", "createdBy"})
+    @EntityGraph(attributePaths = {"student", "group", "createdBy", "attendance"})
     Page<PointTransaction> findAllBy(Pageable pageable);
 }

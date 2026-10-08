@@ -19,3 +19,6 @@ frontend/out/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Frontend build
+frontend/dist/

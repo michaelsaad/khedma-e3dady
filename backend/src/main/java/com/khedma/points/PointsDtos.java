@@ -1,6 +1,7 @@
 package com.khedma.points;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import com.khedma.attendance.AttendanceKind;
 
@@ -33,6 +34,7 @@ public final class PointsDtos {
             int balanceAfter,
             String notes,
             Long attendanceId,
+            LocalDate attendanceDate,
             AttendanceKind attendanceKind,
             Long reversesId,
             String createdBy,
@@ -50,6 +52,7 @@ public final class PointsDtos {
                     t.getBalanceAfter(),
                     t.getNotes(),
                     t.getAttendance() == null ? null : t.getAttendance().getId(),
+                    t.getAttendance() == null ? null : t.getAttendance().getMeetingDate(),
                     t.getAttendanceKind(),
                     t.getReverses() == null ? null : t.getReverses().getId(),
                     t.getCreatedBy() == null ? null : t.getCreatedBy().getDisplayName(),

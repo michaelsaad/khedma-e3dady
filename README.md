@@ -9,7 +9,7 @@ Admins record weekly attendance (service and mass), and points are distributed a
 ```
 khedma-e3dady/
 ├── backend/             Spring Boot API
-├── frontend/            Web app (coming soon)
+├── frontend/            React web app (Arabic, RTL)
 └── docker-compose.yml   Local PostgreSQL
 ```
 
@@ -20,11 +20,12 @@ khedma-e3dady/
 | API      | Spring Boot 3.5, Java 17                          |
 | Database | PostgreSQL 16, Flyway migrations                  |
 | Auth     | Google sign-in and email/password, JWT            |
+| Web app  | React 19, Vite, TypeScript, Tailwind CSS 4, TanStack Query |
 | Tests    | JUnit 5, Testcontainers                           |
 
 ## Getting started
 
-**Prerequisites:** Java 17+, Maven, Docker.
+**Prerequisites:** Java 17+, Maven, Docker, Node 20+, pnpm.
 
 ```bash
 # 1. Start PostgreSQL (port 5433)
@@ -34,6 +35,19 @@ docker compose up -d
 cd backend
 mvn spring-boot:run
 ```
+
+Then, in a second terminal, run the web app (port 3000):
+
+```bash
+cd frontend
+cp .env.example .env.local
+pnpm install
+pnpm dev
+```
+
+The web app reads `VITE_API_URL` (API address) and `VITE_GOOGLE_CLIENT_ID` (leave empty to hide the Google button).
+
+> **Local dev without SMTP:** verification codes are printed in the backend log.
 
 Run the tests (Docker must be running):
 
