@@ -5,6 +5,7 @@ import java.time.Instant;
 public record UserResponse(
         Long id,
         String email,
+        boolean emailVerified,
         String displayName,
         String avatarUrl,
         Role role,
@@ -19,6 +20,7 @@ public record UserResponse(
         return new UserResponse(
                 user.getId(),
                 user.getEmail(),
+                user.isEmailVerified(),
                 user.getDisplayName(),
                 user.getAvatarUrl(),
                 user.getRole(),

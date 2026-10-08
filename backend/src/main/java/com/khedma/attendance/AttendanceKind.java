@@ -1,8 +1,8 @@
 package com.khedma.attendance;
 
 public enum AttendanceKind {
-    SERVICE("حضور خدمة"),
-    MASS("حضور قداس");
+    SERVICE("Service attendance"),
+    MASS("Mass attendance");
 
     private final String label;
 
@@ -10,6 +10,7 @@ public enum AttendanceKind {
         this.label = label;
     }
 
+    /** English label used in transaction notes, e.g. "Mass attendance on 2026-10-09". */
     public String label() {
         return label;
     }

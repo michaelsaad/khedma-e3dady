@@ -26,7 +26,7 @@ create table app_users (
     avatar_url     varchar(500),
     role           varchar(20)  not null default 'USER' check (role in ('USER', 'ADMIN', 'SUPER_ADMIN')),
     status         varchar(20)  not null default 'PENDING' check (status in ('PENDING', 'APPROVED', 'REJECTED')),
-    -- Optional link so a USER (مخدوم) can see their own points and attendance.
+    -- Optional link so a USER can see their own points and attendance.
     student_id     bigint unique references students (id) on delete set null,
     created_at     timestamptz  not null default now(),
     last_login_at  timestamptz

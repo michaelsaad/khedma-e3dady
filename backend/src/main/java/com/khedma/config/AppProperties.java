@@ -14,6 +14,8 @@ public record AppProperties(
         ZoneId timezone,
         Jwt jwt,
         Google google,
+        Otp otp,
+        Mail mail,
         List<String> superAdminEmails,
         Cors cors) {
 
@@ -24,6 +26,10 @@ public record AppProperties(
             return clientId != null && !clientId.isBlank();
         }
     }
+
+    public record Otp(Duration ttl, Duration resendCooldown, int maxAttempts) {}
+
+    public record Mail(String from) {}
 
     public record Cors(List<String> allowedOrigins) {}
 

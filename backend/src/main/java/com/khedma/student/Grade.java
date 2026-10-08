@@ -1,17 +1,8 @@
 package com.khedma.student;
 
+/** Middle-school grade (first, second, third preparatory). */
 public enum Grade {
-    FIRST("الأول"),
-    SECOND("الثاني"),
-    THIRD("الثالث");
-
-    private final String arabicName;
-
-    Grade(String arabicName) {
-        this.arabicName = arabicName;
-    }
-
-    public String arabicName() {
-        return arabicName;
-    }
+    FIRST,
+    SECOND,
+    THIRD
 }

@@ -34,9 +34,9 @@ public final class SettingsDtos {
     }
 
     public record UpdateSettingsRequest(
-            @NotNull(message = "اكتب نقاط القداس") @Min(value = 0, message = "النقاط لا تقل عن 0") @Max(value = 1000, message = "النقاط لا تزيد عن 1000") Integer massPoints,
-            @NotNull(message = "اكتب نقاط الخدمة") @Min(value = 0, message = "النقاط لا تقل عن 0") @Max(value = 1000, message = "النقاط لا تزيد عن 1000") Integer servicePoints,
-            @NotNull(message = "اختر بداية السنة") LocalDate seasonStart,
-            @NotNull(message = "اختر نهاية السنة") LocalDate seasonEnd,
-            @NotNull(message = "اختر يوم الاجتماع") DayOfWeek meetingDay) {}
+            @NotNull @Min(value = 0) @Max(value = 1000) Integer massPoints,
+            @NotNull @Min(value = 0) @Max(value = 1000) Integer servicePoints,
+            @NotNull LocalDate seasonStart,
+            @NotNull LocalDate seasonEnd,
+            @NotNull DayOfWeek meetingDay) {}
 }

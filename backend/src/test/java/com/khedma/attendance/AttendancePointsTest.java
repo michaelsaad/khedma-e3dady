@@ -18,6 +18,8 @@ import com.khedma.TestcontainersConfig;
 import com.khedma.attendance.AttendanceDtos.AttendanceEntry;
 import com.khedma.attendance.AttendanceDtos.SaveAttendanceResult;
 import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
+import com.khedma.dashboard.DashboardService;
 import com.khedma.points.PointTransaction;
 import com.khedma.points.PointTransactionRepository;
 import com.khedma.points.PointsDtos.ManualKind;
@@ -47,6 +49,7 @@ class AttendancePointsTest {
     @Autowired StudentRepository students;
     @Autowired UserRepository users;
     @Autowired PointTransactionRepository transactions;
+    @Autowired DashboardService dashboardService;
 
     Long adminId;
     Student student;
@@ -75,7 +78,7 @@ class AttendancePointsTest {
         assertThat(balance()).isEqualTo(7);
         assertThat(studentTransactions())
                 .extracting(PointTransaction::getNotes)
-                .containsExactlyInAnyOrder("حضور خدمة يوم الجمعة 9 أكتوبر 2026", "حضور قداس يوم الجمعة 9 أكتوبر 2026");
+                .containsExactlyInAnyOrder("Service attendance on 2026-10-09", "Mass attendance on 2026-10-09");
     }
 
     @Test
@@ -100,7 +103,7 @@ class AttendancePointsTest {
                 .filter(t -> t.getType() == TransactionType.ATTENDANCE_REVERSAL)
                 .findFirst().orElseThrow();
         assertThat(reversal.getAmount()).isEqualTo(-5);
-        assertThat(reversal.getNotes()).isEqualTo("إلغاء حضور قداس يوم الجمعة 9 أكتوبر 2026");
+        assertThat(reversal.getNotes()).isEqualTo("Reversal: Mass attendance on 2026-10-09");
         assertThat(reversal.getReverses().getType()).isEqualTo(TransactionType.ATTENDANCE_AWARD);
 
         // Marking again awards again.
@@ -140,7 +143,7 @@ class AttendancePointsTest {
         assertThatThrownBy(() -> pointsService.manualForStudent(student.getId(),
                 new ManualPointsRequest(ManualKind.DEDUCT, 11, "هدية"), adminId))
                 .isInstanceOf(ApiException.class)
-                .hasMessage("الرصيد لا يكفي للخصم");
+                .extracting("code").isEqualTo(ErrorCode.INSUFFICIENT_BALANCE);
 
         pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.RESET, null, "بداية ترم"), adminId);
         assertThat(balance()).isZero();
@@ -152,6 +155,19 @@ class AttendancePointsTest {
         assertThat(view.previousMeeting()).isEqualTo(LocalDate.of(2026, 9, 25));
         assertThat(view.nextMeeting()).isEqualTo(OCT_9);
         assertThat(attendanceService.forMeeting(OCT_9).nextMeeting()).isNull();
+    }
+
+    @Test
+    void dashboardCardReflectsAttendanceAndPoints() {
+        save(true, true);
+        var card = dashboardService.student(student.getId()).card();
+
+        assertThat(card.points()).isEqualTo(7);
+        assertThat(card.rank()).isEqualTo(1);
+        assertThat(card.meetingsHeld()).isEqualTo(4); // 18 Sep .. 9 Oct
+        assertThat(card.serviceCount()).isEqualTo(1);
+        assertThat(card.massRate()).isEqualTo(25);
+        assertThat(dashboardService.student(student.getId()).attendance()).hasSize(4);
     }
 
     private SaveAttendanceResult save(boolean service, boolean mass) {

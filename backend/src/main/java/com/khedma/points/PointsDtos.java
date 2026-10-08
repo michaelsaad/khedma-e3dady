@@ -18,9 +18,9 @@ public final class PointsDtos {
 
     /** {@code amount} is required for ADD/DEDUCT and ignored for RESET. */
     public record ManualPointsRequest(
-            @NotNull(message = "اختر نوع العملية") ManualKind kind,
-            @Min(value = 1, message = "النقاط لا تقل عن 1") @Max(value = 10000, message = "النقاط لا تزيد عن 10000") Integer amount,
-            @NotBlank(message = "اكتب السبب") @Size(max = 200, message = "السبب لا يزيد عن 200 حرف") String notes) {}
+            @NotNull ManualKind kind,
+            @Min(value = 1) @Max(value = 10000) Integer amount,
+            @NotBlank @Size(max = 200) String notes) {}
 
     public record TransactionResponse(
             Long id,

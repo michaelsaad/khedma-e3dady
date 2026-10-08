@@ -1,12 +1,10 @@
 package com.khedma.config;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,8 +16,11 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khedma.auth.AppJwtAuthenticationConverter;
 import com.khedma.auth.JwtService;
+import com.khedma.common.ErrorCode;
+import com.khedma.common.ErrorResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -27,7 +28,8 @@ import jakarta.servlet.http.HttpServletResponse;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, AppJwtAuthenticationConverter jwtConverter) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, AppJwtAuthenticationConverter jwtConverter,
+                                            ObjectMapper objectMapper) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
@@ -36,23 +38,28 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         // Pending/rejected users can still read their own account status.
                         .requestMatchers("/api/me").authenticated()
-                        .requestMatchers("/api/me/**").hasRole("USER")
+                        // Any approved account (USER and up).
+                        .requestMatchers("/api/me/**", "/api/dashboard/**").hasRole("USER")
                         .requestMatchers("/api/users/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/**").hasRole("ADMIN")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(oauth -> oauth
-                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)))
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter))
+                        .authenticationEntryPoint((request, response, ex) ->
+                                writeError(response, objectMapper, ErrorCode.UNAUTHENTICATED)))
                 .exceptionHandling(ex -> ex
-                        .accessDeniedHandler((request, response, denied) -> writeError(response,
-                                HttpStatus.FORBIDDEN, "ليس لديك صلاحية لهذه العملية أو حسابك في انتظار الموافقة")));
+                        .authenticationEntryPoint((request, response, denied) ->
+                                writeError(response, objectMapper, ErrorCode.UNAUTHENTICATED))
+                        .accessDeniedHandler((request, response, denied) ->
+                                writeError(response, objectMapper, ErrorCode.ACCESS_DENIED)));
         return http.build();
     }
 
-    private static void writeError(HttpServletResponse response, HttpStatus status, String message) throws IOException {
-        response.setStatus(status.value());
+    private static void writeError(HttpServletResponse response, ObjectMapper objectMapper, ErrorCode code)
+            throws IOException {
+        response.setStatus(code.status().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write("{\"message\":\"" + message + "\"}");
+        objectMapper.writeValue(response.getOutputStream(), ErrorResponse.of(code));
     }
 
     @Bean

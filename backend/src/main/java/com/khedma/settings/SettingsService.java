@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
 import com.khedma.settings.SettingsDtos.SettingsResponse;
 import com.khedma.settings.SettingsDtos.UpdateSettingsRequest;
 import com.khedma.user.UserRepository;
@@ -41,7 +42,7 @@ public class SettingsService {
     @Transactional
     public SettingsResponse update(UpdateSettingsRequest request, Long actorId) {
         if (!request.seasonEnd().isAfter(request.seasonStart())) {
-            throw ApiException.badRequest("نهاية السنة لازم تكون بعد بدايتها");
+            throw new ApiException(ErrorCode.INVALID_SEASON_RANGE);
         }
         AppSettings settings = current();
         settings.setMassPoints(request.massPoints());

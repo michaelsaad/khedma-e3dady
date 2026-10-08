@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
 import com.khedma.common.PageResponse;
 import com.khedma.group.GroupRepository;
 import com.khedma.group.StudentGroup;
@@ -65,7 +66,7 @@ public class StudentService {
         StudentGroup group = resolveGroup(request.groupId());
         Student student = students.findByNameAndGrade(name, request.grade())
                 .map(existing -> {
-                    if (existing.isActive()) throw ApiException.conflict("المخدوم موجود بالفعل");
+                    if (existing.isActive()) throw new ApiException(ErrorCode.STUDENT_ALREADY_EXISTS);
                     existing.setActive(true);
                     return existing;
                 })
@@ -83,7 +84,7 @@ public class StudentService {
         String name = request.name().trim();
         students.findByNameAndGrade(name, request.grade())
                 .filter(other -> !other.getId().equals(id))
-                .ifPresent(other -> { throw ApiException.conflict("يوجد مخدوم بنفس الاسم والصف"); });
+                .ifPresent(other -> { throw new ApiException(ErrorCode.STUDENT_ALREADY_EXISTS); });
         student.setName(name);
         student.setGrade(request.grade());
         student.setPhone(normalizePhone(request.phone()));
@@ -100,12 +101,12 @@ public class StudentService {
     }
 
     private Student requireActive(Long id) {
-        return students.findByIdAndActiveTrue(id).orElseThrow(() -> ApiException.notFound("المخدوم غير موجود"));
+        return students.findByIdAndActiveTrue(id).orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
     }
 
     private StudentGroup resolveGroup(Long groupId) {
         if (groupId == null) return null;
-        return groups.findById(groupId).orElseThrow(() -> ApiException.badRequest("الجروب غير موجود"));
+        return groups.findById(groupId).orElseThrow(() -> new ApiException(ErrorCode.GROUP_NOT_FOUND));
     }
 
     private static String normalizePhone(String phone) {

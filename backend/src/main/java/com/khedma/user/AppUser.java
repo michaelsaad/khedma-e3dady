@@ -33,6 +33,10 @@ public class AppUser {
     @Column(nullable = false, unique = true)
     private String email;
 
+    /** True after an OTP confirmation or a Google sign-in (Google emails are already verified). */
+    @Column(nullable = false)
+    private boolean emailVerified;
+
     /** Null for accounts that only sign in with Google. */
     private String passwordHash;
 

@@ -53,18 +53,42 @@ Configuration comes from environment variables. See [`backend/.env.example`](bac
 | `DB_PASSWORD`          | Database password                                            |
 | `JWT_SECRET`           | Token signing key, at least 32 characters                    |
 | `GOOGLE_CLIENT_ID`     | OAuth client ID from Google Cloud Console                    |
-| `SUPER_ADMIN_EMAILS`   | Comma-separated owner emails, promoted on Google sign-in     |
+| `SUPER_ADMIN_EMAILS`   | Comma-separated owner emails, promoted once verified         |
+| `SPRING_MAIL_HOST`     | SMTP host for verification emails (unset = codes are logged) |
+| `SPRING_MAIL_PORT`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` | SMTP settings |
+| `MAIL_FROM`            | Sender address for verification emails                       |
 | `CORS_ALLOWED_ORIGINS` | Frontend origin(s), e.g. `http://localhost:3000`             |
 
 ## Roles
 
 | Role          | Access                                                        |
 | ------------- | ------------------------------------------------------------- |
-| `USER`        | Their own points and attendance, once linked to a student     |
+| `USER`        | Dashboard, plus their own data once linked to a student       |
 | `ADMIN`       | Students, groups, attendance, points, app settings            |
 | `SUPER_ADMIN` | Everything above, plus user approval and role management      |
 
-New accounts start as `PENDING` until a super admin approves them.
+New accounts start as `PENDING` until a super admin approves them. A super admin can promote any user to `ADMIN`.
+
+## Authentication
+
+- **Google:** the frontend gets an ID token from the Google sign-in button and sends it to `POST /auth/google`.
+- **Email and password:**
+  1. `POST /auth/register` creates the account and emails a 6-digit code.
+  2. `POST /auth/verify-email` checks the code and signs the user in.
+
+  Codes expire after 10 minutes and allow 5 attempts. A new code can be requested with `POST /auth/resend-code` once every 60 seconds. Login is blocked until the email is verified.
+
+Unauthenticated users can only reach the `/auth` endpoints.
+
+## Errors
+
+Every error returns a stable `code` for the frontend to translate. The `message` is an English fallback.
+
+```json
+{ "code": "INSUFFICIENT_BALANCE", "message": "Balance is too low for this deduction" }
+```
+
+Validation errors also list each failing field with its constraint (`NotBlank`, `Size`, `Email`, …). All codes are defined in [`ErrorCode.java`](backend/src/main/java/com/khedma/common/ErrorCode.java).
 
 ## Automatic points
 
@@ -84,8 +108,10 @@ All endpoints are under `/api` and need a `Bearer` token, except the `/auth` end
 
 | Area        | Endpoints                                                                     | Role          |
 | ----------- | ----------------------------------------------------------------------------- | ------------- |
-| Auth        | `POST /auth/register`, `POST /auth/login`, `POST /auth/google`                | Public        |
-| Account     | `GET /me`, `GET /me/student`, `GET /me/transactions`                          | Signed in     |
+| Auth        | `POST /auth/register`, `/auth/verify-email`, `/auth/resend-code`, `/auth/login`, `/auth/google` | Public |
+| Account     | `GET /me`                                                                     | Signed in     |
+| Dashboard   | `GET /dashboard`, `GET /dashboard/students` (cards), `GET /dashboard/students/{id}` | Approved user |
+| My data     | `GET /me/student`, `GET /me/transactions`                                     | Approved user |
 | Settings    | `GET /settings`, `PUT /settings`                                              | Admin         |
 | Students    | `GET /students` (search, paginated), `POST`, `GET/PUT/DELETE /students/{id}`  | Admin         |
 | Groups      | `GET /groups`, `POST /groups`, `PUT /groups/{id}`                             | Admin         |

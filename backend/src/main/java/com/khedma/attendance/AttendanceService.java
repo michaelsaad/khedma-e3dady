@@ -20,6 +20,7 @@ import com.khedma.attendance.AttendanceDtos.MeetingAttendance;
 import com.khedma.attendance.AttendanceDtos.MeetingsResponse;
 import com.khedma.attendance.AttendanceDtos.SaveAttendanceResult;
 import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
 import com.khedma.points.PointsService;
 import com.khedma.settings.AppSettings;
 import com.khedma.settings.SettingsService;
@@ -99,7 +100,7 @@ public class AttendanceService {
         AppSettings settings = settingsService.current();
         calendar.requireValidMeeting(date, settings);
         if (new HashSet<>(entries.stream().map(AttendanceEntry::studentId).toList()).size() != entries.size()) {
-            throw ApiException.badRequest("يوجد تكرار في تعديلات الحضور");
+            throw new ApiException(ErrorCode.DUPLICATE_ATTENDANCE_ENTRY);
         }
 
         // Lock students in id order so concurrent saves can't deadlock.
@@ -113,7 +114,7 @@ public class AttendanceService {
         for (AttendanceEntry entry : ordered) {
             Student student = students.findByIdForUpdate(entry.studentId())
                     .filter(Student::isActive)
-                    .orElseThrow(() -> ApiException.notFound("أحد المخدومين غير موجود"));
+                    .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
 
             Attendance attendance = attendanceRepository.findByStudentIdAndMeetingDate(student.getId(), date)
                     .orElseGet(() -> {

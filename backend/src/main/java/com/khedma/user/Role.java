@@ -3,7 +3,7 @@ package com.khedma.user;
 import java.util.List;
 
 public enum Role {
-    /** مخدوم / regular user: sees only their own linked student data. */
+    /** Regular approved account: sees the dashboard and, if linked, their own student data. */
     USER,
     /** Manages students, groups, attendance, points and app settings. */
     ADMIN,

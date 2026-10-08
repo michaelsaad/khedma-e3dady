@@ -11,9 +11,9 @@ public final class StudentDtos {
     private StudentDtos() {}
 
     public record StudentRequest(
-            @NotBlank(message = "اكتب اسم المخدوم") @Size(min = 2, max = 100, message = "الاسم من 2 إلى 100 حرف") String name,
-            @NotNull(message = "اختر الصف") Grade grade,
-            @Size(max = 30, message = "رقم التليفون طويل جدًا") String phone,
+            @NotBlank @Size(min = 2, max = 100) String name,
+            @NotNull Grade grade,
+            @Size(max = 30) String phone,
             /** null = no group. */
             Long groupId) {}
 
@@ -21,7 +21,6 @@ public final class StudentDtos {
             Long id,
             String name,
             Grade grade,
-            String gradeName,
             String phone,
             Long groupId,
             String groupName,
@@ -33,7 +32,6 @@ public final class StudentDtos {
                     s.getId(),
                     s.getName(),
                     s.getGrade(),
-                    s.getGrade().arabicName(),
                     s.getPhone(),
                     s.getGroup() == null ? null : s.getGroup().getId(),
                     s.getGroup() == null ? null : s.getGroup().getName(),

@@ -10,8 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.khedma.attendance.Attendance;
 import com.khedma.attendance.AttendanceKind;
-import com.khedma.attendance.MeetingCalendar;
 import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
 import com.khedma.common.PageResponse;
 import com.khedma.group.GroupRepository;
 import com.khedma.group.StudentGroup;
@@ -52,7 +52,7 @@ public class PointsService {
     public TransactionResponse manualForStudent(Long studentId, ManualPointsRequest request, Long actorId) {
         Student student = students.findByIdForUpdate(studentId)
                 .filter(Student::isActive)
-                .orElseThrow(() -> ApiException.notFound("المخدوم غير موجود"));
+                .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
         int delta = manualDelta(request, student.getPointsBalance());
         PointTransaction tx = newTransaction(manualType(request), delta, request.notes().trim(), actorId);
         tx.setStudent(student);
@@ -64,7 +64,7 @@ public class PointsService {
     @Transactional
     public TransactionResponse manualForGroup(Long groupId, ManualPointsRequest request, Long actorId) {
         StudentGroup group = groups.findByIdForUpdate(groupId)
-                .orElseThrow(() -> ApiException.notFound("الجروب غير موجود"));
+                .orElseThrow(() -> new ApiException(ErrorCode.GROUP_NOT_FOUND));
         int delta = manualDelta(request, group.getPointsBalance());
         PointTransaction tx = newTransaction(manualType(request), delta, request.notes().trim(), actorId);
         tx.setGroup(group);
@@ -78,18 +78,18 @@ public class PointsService {
             case ADD -> requireAmount(request);
             case DEDUCT -> {
                 int amount = requireAmount(request);
-                if (amount > balance) throw ApiException.badRequest("الرصيد لا يكفي للخصم");
+                if (amount > balance) throw new ApiException(ErrorCode.INSUFFICIENT_BALANCE);
                 yield -amount;
             }
             case RESET -> {
-                if (balance == 0) throw ApiException.badRequest("الرصيد صفر بالفعل");
+                if (balance == 0) throw new ApiException(ErrorCode.BALANCE_ALREADY_ZERO);
                 yield -balance;
             }
         };
     }
 
     private static int requireAmount(ManualPointsRequest request) {
-        if (request.amount() == null) throw ApiException.badRequest("اكتب عدد النقاط");
+        if (request.amount() == null) throw new ApiException(ErrorCode.AMOUNT_REQUIRED);
         return request.amount();
     }
 
@@ -115,20 +115,20 @@ public class PointsService {
     public int syncAttendancePoints(Student lockedStudent, Attendance attendance, AttendanceKind kind,
                                     int points, Long actorId) {
         var active = transactions.findActiveAttendanceAwards(attendance.getId(), kind);
-        String when = MeetingCalendar.formatArabic(attendance.getMeetingDate());
+        String note = kind.label() + " on " + attendance.getMeetingDate();
         int net = 0;
 
         if (attendance.isPresent(kind)) {
             if (active.isEmpty() && points > 0) {
                 PointTransaction award = newTransaction(TransactionType.ATTENDANCE_AWARD, points,
-                        kind.label() + " يوم " + when, actorId);
+                        note, actorId);
                 net += applyToStudent(lockedStudent, award, attendance, kind);
             }
         } else {
             for (PointTransaction award : active) {
                 // Reverse exactly what was awarded, even if the setting changed since.
                 PointTransaction reversal = newTransaction(TransactionType.ATTENDANCE_REVERSAL, -award.getAmount(),
-                        "إلغاء " + kind.label() + " يوم " + when, actorId);
+                        "Reversal: " + note, actorId);
                 reversal.setReverses(award);
                 net += applyToStudent(lockedStudent, reversal, attendance, kind);
             }
@@ -152,13 +152,13 @@ public class PointsService {
 
     @Transactional(readOnly = true)
     public PageResponse<TransactionResponse> forStudent(Long studentId, int page, int size) {
-        if (!students.existsById(studentId)) throw ApiException.notFound("المخدوم غير موجود");
+        if (!students.existsById(studentId)) throw new ApiException(ErrorCode.STUDENT_NOT_FOUND);
         return PageResponse.of(transactions.findAllByStudentId(studentId, pageOf(page, size)), TransactionResponse::of);
     }
 
     @Transactional(readOnly = true)
     public PageResponse<TransactionResponse> forGroup(Long groupId, int page, int size) {
-        if (!groups.existsById(groupId)) throw ApiException.notFound("الجروب غير موجود");
+        if (!groups.existsById(groupId)) throw new ApiException(ErrorCode.GROUP_NOT_FOUND);
         return PageResponse.of(transactions.findAllByGroupId(groupId, pageOf(page, size)), TransactionResponse::of);
     }
 

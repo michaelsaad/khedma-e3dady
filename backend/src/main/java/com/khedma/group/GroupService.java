@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
 import com.khedma.group.GroupDtos.GroupRequest;
 import com.khedma.group.GroupDtos.GroupResponse;
 import com.khedma.student.StudentRepository;
@@ -29,7 +30,7 @@ public class GroupService {
     @Transactional
     public GroupResponse create(GroupRequest request) {
         String name = request.name().trim();
-        if (groups.existsByNameIgnoreCase(name)) throw ApiException.conflict("اسم الجروب موجود بالفعل");
+        if (groups.existsByNameIgnoreCase(name)) throw new ApiException(ErrorCode.GROUP_NAME_TAKEN);
         StudentGroup group = new StudentGroup();
         group.setName(name);
         return toResponse(groups.save(group));
@@ -37,9 +38,9 @@ public class GroupService {
 
     @Transactional
     public GroupResponse rename(Long id, GroupRequest request) {
-        StudentGroup group = groups.findById(id).orElseThrow(() -> ApiException.notFound("الجروب غير موجود"));
+        StudentGroup group = groups.findById(id).orElseThrow(() -> new ApiException(ErrorCode.GROUP_NOT_FOUND));
         String name = request.name().trim();
-        if (groups.existsByNameIgnoreCaseAndIdNot(name, id)) throw ApiException.conflict("اسم الجروب موجود بالفعل");
+        if (groups.existsByNameIgnoreCaseAndIdNot(name, id)) throw new ApiException(ErrorCode.GROUP_NAME_TAKEN);
         group.setName(name);
         return toResponse(group);
     }

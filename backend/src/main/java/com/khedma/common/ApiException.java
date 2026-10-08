@@ -2,36 +2,21 @@ package com.khedma.common;
 
 import org.springframework.http.HttpStatus;
 
-import lombok.Getter;
-
-/** Business error with an HTTP status and a user-facing (Arabic) message. */
-@Getter
+/** Business error carrying a stable {@link ErrorCode}; the HTTP status comes from the code. */
 public class ApiException extends RuntimeException {
 
-    private final HttpStatus status;
+    private final ErrorCode code;
 
-    public ApiException(HttpStatus status, String message) {
-        super(message);
-        this.status = status;
+    public ApiException(ErrorCode code) {
+        super(code.defaultMessage());
+        this.code = code;
     }
 
-    public static ApiException badRequest(String message) {
-        return new ApiException(HttpStatus.BAD_REQUEST, message);
+    public ErrorCode getCode() {
+        return code;
     }
 
-    public static ApiException notFound(String message) {
-        return new ApiException(HttpStatus.NOT_FOUND, message);
-    }
-
-    public static ApiException conflict(String message) {
-        return new ApiException(HttpStatus.CONFLICT, message);
-    }
-
-    public static ApiException forbidden(String message) {
-        return new ApiException(HttpStatus.FORBIDDEN, message);
-    }
-
-    public static ApiException unauthorized(String message) {
-        return new ApiException(HttpStatus.UNAUTHORIZED, message);
+    public HttpStatus getStatus() {
+        return code.status();
     }
 }

@@ -2,7 +2,6 @@ package com.khedma.auth;
 
 import java.util.Set;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -14,6 +13,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Component;
 
 import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
 import com.khedma.config.AppProperties;
 
 /**
@@ -35,17 +35,17 @@ public class GoogleTokenVerifier {
 
     public GoogleProfile verify(String idToken) {
         if (!properties.google().enabled()) {
-            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "تسجيل الدخول بجوجل غير مفعّل");
+            throw new ApiException(ErrorCode.GOOGLE_LOGIN_DISABLED);
         }
         Jwt jwt;
         try {
             jwt = decoder().decode(idToken);
         } catch (JwtException ex) {
-            throw ApiException.unauthorized("تعذر التحقق من حساب جوجل");
+            throw new ApiException(ErrorCode.GOOGLE_TOKEN_INVALID);
         }
         String email = jwt.getClaimAsString("email");
         if (email == null || !Boolean.TRUE.equals(jwt.getClaimAsBoolean("email_verified"))) {
-            throw ApiException.unauthorized("إيميل جوجل غير مؤكد");
+            throw new ApiException(ErrorCode.GOOGLE_EMAIL_NOT_VERIFIED);
         }
         return new GoogleProfile(
                 jwt.getSubject(),

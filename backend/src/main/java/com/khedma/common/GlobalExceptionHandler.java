@@ -1,12 +1,10 @@
 package com.khedma.common;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -22,30 +20,35 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ErrorResponse> handleApi(ApiException ex) {
-        return ResponseEntity.status(ex.getStatus()).body(new ErrorResponse(ex.getMessage()));
+        return respond(ex.getCode());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, String> fields = new LinkedHashMap<>();
-        ex.getBindingResult().getFieldErrors()
-                .forEach(error -> fields.putIfAbsent(error.getField(), error.getDefaultMessage()));
-        return ResponseEntity.badRequest().body(new ErrorResponse("راجع البيانات المدخلة", fields));
+        List<ErrorResponse.FieldError> fields = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> new ErrorResponse.FieldError(error.getField(), error.getCode(), error.getDefaultMessage()))
+                .toList();
+        ErrorCode code = ErrorCode.VALIDATION_FAILED;
+        return ResponseEntity.status(code.status()).body(new ErrorResponse(code, code.defaultMessage(), fields));
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     ResponseEntity<ErrorResponse> handleUnreadable(Exception ex) {
-        return ResponseEntity.badRequest().body(new ErrorResponse("طلب غير صالح"));
+        return respond(ErrorCode.MALFORMED_REQUEST);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     ResponseEntity<ErrorResponse> handleIntegrity(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse("البيانات تتعارض مع بيانات موجودة"));
+        return respond(ErrorCode.DATA_CONFLICT);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse("ليس لديك صلاحية لهذه العملية"));
+        return respond(ErrorCode.ACCESS_DENIED);
+    }
+
+    private static ResponseEntity<ErrorResponse> respond(ErrorCode code) {
+        return ResponseEntity.status(code.status()).body(ErrorResponse.of(code));
     }
 }

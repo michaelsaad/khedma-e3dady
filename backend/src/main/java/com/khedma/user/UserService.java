@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.khedma.attendance.AttendanceRepository;
 import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
 import com.khedma.common.PageResponse;
 import com.khedma.config.AppProperties;
 import com.khedma.points.PointsDtos.TransactionResponse;
@@ -53,10 +54,10 @@ public class UserService {
         boolean changesAccess = (request.role() != null && request.role() != target.getRole())
                 || (request.status() != null && request.status() != target.getStatus());
         if (changesAccess && Objects.equals(targetId, actorId)) {
-            throw ApiException.badRequest("لا يمكنك تغيير صلاحية حسابك الحالي");
+            throw new ApiException(ErrorCode.CANNOT_CHANGE_OWN_ACCESS);
         }
         if (changesAccess && properties.normalizedSuperAdminEmails().contains(target.getEmail())) {
-            throw ApiException.badRequest("لا يمكن تغيير صلاحية حساب المالك");
+            throw new ApiException(ErrorCode.CANNOT_CHANGE_OWNER_ACCESS);
         }
         if (request.role() != null) target.setRole(request.role());
         if (request.status() != null) target.setStatus(request.status());
@@ -70,10 +71,10 @@ public class UserService {
             target.setStudent(null);
         } else {
             Student student = students.findByIdAndActiveTrue(studentId)
-                    .orElseThrow(() -> ApiException.notFound("المخدوم غير موجود"));
+                    .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
             users.findByStudentId(studentId)
                     .filter(other -> !other.getId().equals(targetId))
-                    .ifPresent(other -> { throw ApiException.conflict("المخدوم مربوط بحساب آخر"); });
+                    .ifPresent(other -> { throw new ApiException(ErrorCode.STUDENT_ALREADY_LINKED); });
             target.setStudent(student);
         }
         return UserResponse.of(target);
@@ -96,12 +97,12 @@ public class UserService {
     private Student linkedStudent(Long userId) {
         Student student = require(userId).getStudent();
         if (student == null || !student.isActive()) {
-            throw ApiException.notFound("حسابك غير مربوط بمخدوم بعد");
+            throw new ApiException(ErrorCode.ACCOUNT_NOT_LINKED);
         }
         return student;
     }
 
     private AppUser require(Long id) {
-        return users.findById(id).orElseThrow(() -> ApiException.notFound("المستخدم غير موجود"));
+        return users.findById(id).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
     }
 }
