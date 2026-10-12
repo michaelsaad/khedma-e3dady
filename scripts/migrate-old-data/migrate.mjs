@@ -13,6 +13,9 @@
 //
 // The old database is only read, never modified.
 
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 const APPLY = process.argv.includes("--apply");
@@ -22,8 +25,10 @@ const env = (name, fallback) => {
   return value;
 };
 
-const OLD_URL = env("OLD_SUPABASE_URL").replace(/\/+$/, "");
-const OLD_KEY = env("OLD_SUPABASE_SERVICE_ROLE_KEY");
+// Source: JSON exports in OLD_DATA_DIR (one <table>.txt/.json per table), or the live Supabase REST API.
+const OLD_DATA_DIR = process.env.OLD_DATA_DIR || (existsSync(new URL("./old data", import.meta.url)) ? fileURLToPath(new URL("./old data", import.meta.url)) : "");
+const OLD_URL = OLD_DATA_DIR ? "" : env("OLD_SUPABASE_URL").replace(/\/+$/, "");
+const OLD_KEY = OLD_DATA_DIR ? "" : env("OLD_SUPABASE_SERVICE_ROLE_KEY");
 const NEW_URL = env("NEW_DATABASE_URL");
 const POINTS_START_DATE = env("POINTS_START_DATE");
 const OWNER_EMAILS = new Set(env("OWNER_EMAILS", "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean));
@@ -35,19 +40,27 @@ const KINDS = { add: "MANUAL_ADD", deduct: "MANUAL_DEDUCT", reset: "RESET" };
 
 // ---- Old side: Supabase REST with the service role key (bypasses RLS, read-only use) --------
 
+function readExport(table) {
+  const file = [".txt", ".json"].map((ext) => join(OLD_DATA_DIR, table + ext)).find(existsSync);
+  if (!file) throw new Error(`Missing export for ${table} in ${OLD_DATA_DIR}`);
+  // Exports copied from the SQL editor may end with "...},\n]"; drop trailing commas before parsing.
+  const text = readFileSync(file, "utf8").replace(/^﻿/, "").trim().replace(/,\s*([\]}])/g, "$1");
+  return text ? JSON.parse(text) : [];
+}
+
 async function readAll(table, select, order = "id") {
+  if (OLD_DATA_DIR) {
+    const key = order;
+    return readExport(table).sort((a, b) => (a[key] < b[key] ? -1 : a[key] > b[key] ? 1 : 0));
+  }
   const rows = [];
   const pageSize = 1000;
   for (let from = 0; ; from += pageSize) {
     const url = `${OLD_URL}/rest/v1/${table}?select=${encodeURIComponent(select)}&order=${order}.asc`;
-    const response = await fetch(url, {
-      headers: {
-        apikey: OLD_KEY,
-        Authorization: `Bearer ${OLD_KEY}`,
-        Range: `${from}-${from + pageSize - 1}`,
-        "Range-Unit": "items",
-      },
-    });
+    const headers = { apikey: OLD_KEY, Range: `${from}-${from + pageSize - 1}`, "Range-Unit": "items" };
+    // Legacy service_role keys are JWTs and go in Authorization too; new sb_secret_ keys must not.
+    if (!OLD_KEY.startsWith("sb_")) headers.Authorization = `Bearer ${OLD_KEY}`;
+    const response = await fetch(url, { headers });
     if (!response.ok) throw new Error(`Reading ${table} failed: HTTP ${response.status} ${await response.text()}`);
     const page = await response.json();
     rows.push(...page);
@@ -61,7 +74,8 @@ const lower = (s) => (s ?? "").trim().toLowerCase();
 const clip = (s, max) => (s ?? "").slice(0, max);
 
 async function main() {
-  console.log(`Mode: ${APPLY ? "APPLY (writes to the new database)" : "DRY RUN (nothing is written)"}\n`);
+  console.log(`Mode: ${APPLY ? "APPLY (writes to the new database)" : "DRY RUN (nothing is written)"}`);
+  console.log(`Source: ${OLD_DATA_DIR ? `exported files in ${OLD_DATA_DIR}` : OLD_URL}\n`);
 
   const [users, groups, students, attendance, pointEvents, groupEvents] = await Promise.all([
     readAll("users", "id,email,display_name,avatar_url,role,status,created_at,last_login_at", "created_at"),
@@ -132,7 +146,7 @@ async function main() {
     for (const u of users) {
       const email = lower(u.email);
       if (!email || userIdByEmail.has(email)) continue;
-      const owner = OWNER_EMAILS.has(email);
+      const owner = OWNER_EMAILS.has(email) || u.role === "superAdmin";
       // In the old app every approved account could record attendance and points -> ADMIN here.
       const status = owner ? "APPROVED" : u.status === "approved" ? "APPROVED" : u.status === "rejected" ? "REJECTED" : "PENDING";
       const role = owner ? "SUPER_ADMIN" : status === "APPROVED" ? "ADMIN" : "USER";

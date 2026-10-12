@@ -27,3 +27,4 @@ frontend/*.tsbuildinfo
 # Migration secrets
 scripts/migrate-old-data/.env.migrate
 scripts/migrate-old-data/node_modules/
+scripts/migrate-old-data/old data/
