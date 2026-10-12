@@ -29,7 +29,11 @@ public record AppProperties(
 
     public record Otp(Duration ttl, Duration resendCooldown, int maxAttempts) {}
 
-    public record Mail(String from) {}
+    public record Mail(String from, String brevoApiKey, String brevoBaseUrl) {
+        public boolean brevoEnabled() {
+            return brevoApiKey != null && !brevoApiKey.isBlank();
+        }
+    }
 
     public record Cors(List<String> allowedOrigins) {}
 

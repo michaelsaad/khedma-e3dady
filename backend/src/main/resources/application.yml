@@ -46,6 +46,9 @@ app:
     max-attempts: 5
   mail:
     from: ${MAIL_FROM:no-reply@khedma.local}
+    # Brevo transactional email API (HTTPS). When set, it is used instead of SMTP.
+    brevo-api-key: ${BREVO_API_KEY:}
+    brevo-base-url: https://api.brevo.com
   # Comma-separated. Verified sign-ins with these emails become SUPER_ADMIN + APPROVED.
   super-admin-emails: ${SUPER_ADMIN_EMAILS:michealsaad11@gmail.com}
   cors:
