@@ -155,3 +155,7 @@ that the web app translates to Arabic.
 <p align="center">
   Made for the Saint Moses the Strong (القديس الأنبا موسى القوي) class.
 </p>
+
+<p align="center">
+  Released under the <a href="LICENSE">MIT License</a>.
+</p>
