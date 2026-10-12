@@ -37,6 +37,12 @@ public class OtpService {
     /** Creates (or replaces) the user's code and emails it. Returns when the code expires. */
     @Transactional(propagation = Propagation.MANDATORY)
     public Instant issue(AppUser user) {
+        return issue(user, CodePurpose.VERIFY_EMAIL);
+    }
+
+    /** Same code store for every purpose: a code proves the user can read that inbox. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Instant issue(AppUser user, CodePurpose purpose) {
         Instant now = clock.instant();
         EmailVerificationCode entry = codes.findById(user.getId()).orElseGet(() -> {
             EmailVerificationCode created = new EmailVerificationCode();
@@ -52,7 +58,7 @@ public class OtpService {
         entry.setAttempts(0);
         entry.setLastSentAt(now);
         codes.save(entry);
-        emailSender.sendVerificationCode(user.getEmail(), user.getDisplayName(), code, settings.ttl());
+        emailSender.sendCode(user.getEmail(), user.getDisplayName(), code, settings.ttl(), purpose);
         return entry.getExpiresAt();
     }
 

@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { ArrowRight, MailCheck } from "lucide-react";
+import { ArrowRight, KeyRound, MailCheck } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/auth/AuthProvider";
@@ -16,6 +16,7 @@ export default function LoginPage() {
   const { signIn } = useAuth();
   const [mode, setMode] = useState<Mode>("signin");
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
+  const [forgotEmail, setForgotEmail] = useState<string | null>(null);
 
   const google = useMutation({
     mutationFn: (idToken: string) => api.post<AuthResponse>("/auth/google", { idToken }),
@@ -31,7 +32,9 @@ export default function LoginPage() {
             <Brand />
           </div>
 
-          {verifyEmail ? (
+          {forgotEmail !== null ? (
+            <ForgotPassword initialEmail={forgotEmail} onBack={() => setForgotEmail(null)} onReset={signIn} />
+          ) : verifyEmail ? (
             <VerifyStep email={verifyEmail} onBack={() => setVerifyEmail(null)} onVerified={signIn} />
           ) : (
             <>
@@ -62,7 +65,7 @@ export default function LoginPage() {
               />
 
               {mode === "signin" ? (
-                <SignInForm onSignedIn={signIn} onNeedsVerification={setVerifyEmail} />
+                <SignInForm onSignedIn={signIn} onNeedsVerification={setVerifyEmail} onForgot={setForgotEmail} />
               ) : (
                 <RegisterForm onRegistered={setVerifyEmail} />
               )}
@@ -87,9 +90,11 @@ export default function LoginPage() {
 function SignInForm({
   onSignedIn,
   onNeedsVerification,
+  onForgot,
 }: {
   onSignedIn: (response: AuthResponse) => void;
   onNeedsVerification: (email: string) => void;
+  onForgot: (email: string) => void;
 }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -128,6 +133,11 @@ function SignInForm({
           onChange={(e) => setPassword(e.target.value)}
         />
       </Field>
+      <div className="-mt-2 text-end">
+        <button type="button" onClick={() => onForgot(email.trim().toLowerCase())} className="text-sm font-medium text-brand-700 hover:underline">
+          نسيت كلمة السر؟
+        </button>
+      </div>
       <Button type="submit" size="lg" className="w-full" loading={login.isPending}>
         دخول
       </Button>
@@ -266,6 +276,136 @@ function VerifyStep({
           </button>
         )}
       </p>
+    </div>
+  );
+}
+
+/** Two steps: ask for the email, then the emailed code + a new password (signs the user in). */
+function ForgotPassword({
+  initialEmail,
+  onBack,
+  onReset,
+}: {
+  initialEmail: string;
+  onBack: () => void;
+  onReset: (response: AuthResponse) => void;
+}) {
+  const [email, setEmail] = useState(initialEmail);
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  const request = useMutation({
+    mutationFn: (target: string) => api.post("/auth/forgot-password", { email: target }),
+    onSuccess: (_data, target) => {
+      setSentTo(target);
+      setCooldown(60);
+      toast.success("لو الإيميل ده عليه حساب، هيوصله كود خلال دقيقة");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+
+  const reset = useMutation({
+    mutationFn: () => api.post<AuthResponse>("/auth/reset-password", { email: sentTo, code, newPassword: password }),
+    onSuccess: (response) => {
+      toast.success("اتغيرت كلمة السر");
+      onReset(response);
+    },
+    onError: (error) => {
+      if (!(error instanceof ApiError && error.code === "VALIDATION_FAILED")) toast.error(errorMessage(error));
+      setCode("");
+    },
+  });
+  const errors = fieldErrors(reset.error);
+
+  return (
+    <div>
+      <button onClick={onBack} className="mb-6 inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800">
+        <ArrowRight className="size-4" />
+        رجوع لتسجيل الدخول
+      </button>
+      <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
+        <KeyRound className="size-6" />
+      </span>
+      <h1 className="text-2xl font-bold">نسيت كلمة السر؟</h1>
+
+      {!sentTo ? (
+        <form
+          className="mt-6 space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            request.mutate(email.trim().toLowerCase());
+          }}
+        >
+          <p className="text-sm text-stone-500">اكتب إيميلك وهنبعتلك كود تعمل بيه كلمة سر جديدة.</p>
+          <Field label="الإيميل">
+            <Input type="email" dir="ltr" autoComplete="email" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} />
+          </Field>
+          <Button type="submit" size="lg" className="w-full" loading={request.isPending}>
+            ابعت الكود
+          </Button>
+        </form>
+      ) : (
+        <form
+          className="mt-6 space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            reset.mutate();
+          }}
+        >
+          <p className="text-sm text-stone-500">
+            لو فيه حساب على{" "}
+            <span dir="ltr" className="font-medium text-stone-800">
+              {sentTo}
+            </span>{" "}
+            هيوصله كود من 6 أرقام. اكتبه هنا مع كلمة السر الجديدة.
+          </p>
+          <Field label="الكود" error={errors.code}>
+            <Input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              dir="ltr"
+              placeholder="••••••"
+              required
+              autoFocus
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              className="h-12 text-center text-xl font-semibold tracking-[0.5em] tabular"
+            />
+          </Field>
+          <Field label="كلمة السر الجديدة" error={errors.newPassword} hint="8 حروف على الأقل">
+            <Input
+              type="password"
+              dir="ltr"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </Field>
+          <Button type="submit" size="lg" className="w-full" loading={reset.isPending} disabled={code.length !== 6 || password.length < 8}>
+            غيّر كلمة السر وادخل
+          </Button>
+          <p className="text-center text-sm text-stone-500">
+            الكود موصلش؟{" "}
+            {cooldown > 0 ? (
+              <span className="tabular">ممكن تطلب كود جديد بعد {cooldown} ثانية</span>
+            ) : (
+              <button type="button" className="font-medium text-brand-700 hover:underline" onClick={() => request.mutate(sentTo)} disabled={request.isPending}>
+                ابعت كود جديد
+              </button>
+            )}
+          </p>
+        </form>
+      )}
     </div>
   );
 }

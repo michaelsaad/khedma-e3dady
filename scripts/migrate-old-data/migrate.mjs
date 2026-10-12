@@ -31,7 +31,7 @@ const OLD_URL = OLD_DATA_DIR ? "" : env("OLD_SUPABASE_URL").replace(/\/+$/, "");
 const OLD_KEY = OLD_DATA_DIR ? "" : env("OLD_SUPABASE_SERVICE_ROLE_KEY");
 const NEW_URL = env("NEW_DATABASE_URL");
 const POINTS_START_DATE = env("POINTS_START_DATE");
-const OWNER_EMAILS = new Set(env("OWNER_EMAILS", "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean));
+const OWNER_EMAILS = new Set((process.env.OWNER_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean));
 
 if (!/^\d{4}-\d{2}-\d{2}$/.test(POINTS_START_DATE)) throw new Error("POINTS_START_DATE must be YYYY-MM-DD");
 
@@ -73,7 +73,59 @@ async function readAll(table, select, order = "id") {
 const lower = (s) => (s ?? "").trim().toLowerCase();
 const clip = (s, max) => (s ?? "").slice(0, max);
 
+// Follow-up import of group point history only (e.g. when it was missing from the first export).
+// Requires the groups to exist and to have no group transactions yet.
+async function importGroupPointsOnly() {
+  console.log(`Mode: GROUP POINTS ONLY, ${APPLY ? "APPLY" : "DRY RUN"}\n`);
+  const events = await readAll("group_point_events", "id,group_id,kind,delta,balance_after,reason,actor_email,created_at");
+  if (!events.length) throw new Error("group_point_events export is empty; nothing to import.");
+
+  const db = new pg.Client({ connectionString: NEW_URL });
+  await db.connect();
+  try {
+    const { rows: groups } = await db.query("select id, name from student_groups");
+    const groupIds = new Set(groups.map((g) => Number(g.id)));
+    const unknown = events.filter((e) => !groupIds.has(e.group_id));
+    if (unknown.length) throw new Error(`Events for unknown groups: ${[...new Set(unknown.map((e) => e.group_id))].join(", ")}`);
+    const { rows: [{ count }] } = await db.query("select count(*)::int as count from point_transactions where group_id is not null");
+    if (count > 0) throw new Error(`New database already has ${count} group transactions; refusing to import twice.`);
+
+    const balance = new Map();
+    for (const e of events) balance.set(e.group_id, e.balance_after);
+    console.table(groups.map((g) => ({ group: g.name, events: events.filter((e) => e.group_id === Number(g.id)).length, balance: balance.get(Number(g.id)) ?? 0 })));
+    if (!APPLY) {
+      console.log("Run with --apply to import.");
+      return;
+    }
+
+    await db.query("begin");
+    const { rows: users } = await db.query("select id, email from app_users");
+    const userIdByEmail = new Map(users.map((u) => [lower(u.email), u.id]));
+    for (const e of events) {
+      await db.query(
+        `insert into point_transactions (group_id, type, amount, balance_after, notes, created_by_id, created_at)
+         values ($1, $2, $3, $4, $5, $6, $7)`,
+        [e.group_id, KINDS[e.kind], e.delta, e.balance_after, clip(e.reason, 255), userIdByEmail.get(lower(e.actor_email)) ?? null, e.created_at]);
+    }
+    for (const [groupId, value] of balance) {
+      await db.query("update student_groups set points_balance = $1 where id = $2", [value, groupId]);
+    }
+    const { rows: mismatches } = await db.query(`
+      select g.id from student_groups g left join point_transactions t on t.group_id = g.id
+      group by g.id having g.points_balance <> coalesce(sum(t.amount), 0)`);
+    if (mismatches.length) throw new Error(`Group balance check failed for ${mismatches.length} groups`);
+    await db.query("commit");
+    console.log(`\nImported ${events.length} group transactions.`);
+  } catch (error) {
+    await db.query("rollback").catch(() => {});
+    throw error;
+  } finally {
+    await db.end();
+  }
+}
+
 async function main() {
+  if (process.argv.includes("--group-points-only")) return importGroupPointsOnly();
   console.log(`Mode: ${APPLY ? "APPLY (writes to the new database)" : "DRY RUN (nothing is written)"}`);
   console.log(`Source: ${OLD_DATA_DIR ? `exported files in ${OLD_DATA_DIR}` : OLD_URL}\n`);
 

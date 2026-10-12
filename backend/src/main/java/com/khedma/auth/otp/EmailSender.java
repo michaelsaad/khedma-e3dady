@@ -57,15 +57,15 @@ public class EmailSender {
         return factory;
     }
 
-    public void sendVerificationCode(String to, String name, String code, Duration validFor) {
-        String subject = "Your Khedma verification code: " + code;
+    public void sendCode(String to, String name, String code, Duration validFor, CodePurpose purpose) {
+        String subject = purpose.subject() + ": " + code;
         String text = """
                 Hi %s,
 
-                Your verification code is: %s
+                %s: %s
 
-                It expires in %d minutes. If you did not create an account, you can ignore this email.
-                """.formatted(name, code, validFor.toMinutes());
+                It expires in %d minutes. If you did not request this, you can ignore this email.
+                """.formatted(name, purpose.intro(), code, validFor.toMinutes());
 
         if (properties.mail().brevoEnabled()) {
             sendWithBrevo(to, name, subject, text);
@@ -73,7 +73,7 @@ public class EmailSender {
         }
         JavaMailSender sender = mailSender.getIfAvailable();
         if (sender == null) {
-            log.warn("Email is not configured. Verification code for {}: {}", to, code);
+            log.warn("Email is not configured. {} code for {}: {}", purpose, to, code);
             return;
         }
         SimpleMailMessage message = new SimpleMailMessage();
@@ -84,7 +84,7 @@ public class EmailSender {
         try {
             sender.send(message);
         } catch (MailException ex) {
-            log.error("Sending verification email to {} failed: {}", to, ex.getMessage());
+            log.error("Sending code email to {} failed: {}", to, ex.getMessage());
             throw new ApiException(ErrorCode.EMAIL_SEND_FAILED);
         }
     }
@@ -105,7 +105,7 @@ public class EmailSender {
                     .retrieve()
                     .toBodilessEntity();
         } catch (RestClientException ex) {
-            log.error("Sending verification email to {} via Brevo failed: {}", to, ex.getMessage());
+            log.error("Sending code email to {} via Brevo failed: {}", to, ex.getMessage());
             throw new ApiException(ErrorCode.EMAIL_SEND_FAILED);
         }
     }

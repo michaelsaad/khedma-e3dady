@@ -15,6 +15,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import com.khedma.auth.otp.CodePurpose;
 import com.khedma.auth.otp.EmailSender;
 import com.khedma.config.AppProperties;
 
@@ -46,14 +47,20 @@ public class TestcontainersConfig {
     public static class CapturingEmailSender extends EmailSender {
 
         private final Map<String, String> lastCodes = new ConcurrentHashMap<>();
+        private final Map<String, CodePurpose> lastPurposes = new ConcurrentHashMap<>();
 
         CapturingEmailSender(ObjectProvider<JavaMailSender> mailSender, AppProperties properties) {
             super(mailSender, properties);
         }
 
         @Override
-        public void sendVerificationCode(String to, String name, String code, Duration validFor) {
+        public void sendCode(String to, String name, String code, Duration validFor, CodePurpose purpose) {
             lastCodes.put(to, code);
+            lastPurposes.put(to, purpose);
+        }
+
+        public CodePurpose lastPurpose(String email) {
+            return lastPurposes.get(email);
         }
 
         public String lastCode(String email) {

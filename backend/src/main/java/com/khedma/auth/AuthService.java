@@ -13,6 +13,7 @@ import com.khedma.auth.AuthDtos.LoginRequest;
 import com.khedma.auth.AuthDtos.RegisterRequest;
 import com.khedma.auth.AuthDtos.RegistrationResponse;
 import com.khedma.auth.GoogleTokenVerifier.GoogleProfile;
+import com.khedma.auth.otp.CodePurpose;
 import com.khedma.auth.otp.OtpService;
 import com.khedma.common.ApiException;
 import com.khedma.common.ErrorCode;
@@ -84,6 +85,28 @@ public class AuthService {
         users.findByEmail(normalizeEmail(rawEmail))
                 .filter(user -> !user.isEmailVerified() && user.getPasswordHash() != null)
                 .ifPresent(otpService::issue);
+    }
+
+    /**
+     * Emails a password reset code. Unknown emails get the same response, so the endpoint
+     * doesn't reveal who has an account. Works for any account, including Google-only and
+     * imported ones, because the code proves the person controls the inbox.
+     */
+    @Transactional
+    public void forgotPassword(String rawEmail) {
+        users.findByEmail(normalizeEmail(rawEmail))
+                .ifPresent(user -> otpService.issue(user, CodePurpose.RESET_PASSWORD));
+    }
+
+    /** Wrong codes are counted as attempts, so this transaction must commit even when it throws. */
+    @Transactional(noRollbackFor = ApiException.class)
+    public AuthResponse resetPassword(String rawEmail, String code, String newPassword) {
+        AppUser user = users.findByEmail(normalizeEmail(rawEmail))
+                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_VERIFICATION_CODE));
+        otpService.verify(user, code);
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setEmailVerified(true); // reading the code proves the inbox is theirs
+        return completeLogin(user);
     }
 
     @Transactional

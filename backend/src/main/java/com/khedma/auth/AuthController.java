@@ -8,11 +8,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.khedma.auth.AuthDtos.AuthResponse;
+import com.khedma.auth.AuthDtos.ForgotPasswordRequest;
 import com.khedma.auth.AuthDtos.GoogleLoginRequest;
 import com.khedma.auth.AuthDtos.LoginRequest;
 import com.khedma.auth.AuthDtos.RegisterRequest;
 import com.khedma.auth.AuthDtos.RegistrationResponse;
 import com.khedma.auth.AuthDtos.ResendCodeRequest;
+import com.khedma.auth.AuthDtos.ResetPasswordRequest;
 import com.khedma.auth.AuthDtos.VerifyEmailRequest;
 
 import jakarta.validation.Valid;
@@ -44,6 +46,19 @@ public class AuthController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void resendCode(@Valid @RequestBody ResendCodeRequest request) {
         authService.resendCode(request.email());
+    }
+
+    /** Emails a 6-digit reset code (same response whether or not the account exists). */
+    @PostMapping("/forgot-password")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request.email());
+    }
+
+    /** Checks the code, sets the new password and signs the user in. */
+    @PostMapping("/reset-password")
+    public AuthResponse resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        return authService.resetPassword(request.email(), request.code(), request.newPassword());
     }
 
     @PostMapping("/login")

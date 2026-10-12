@@ -47,7 +47,7 @@ class EmailSenderTest {
                 .andExpect(jsonPath("$.textContent").value(containsString("123456")))
                 .andRespond(withStatus(HttpStatus.CREATED));
 
-        sender("test-key").sendVerificationCode("user@test.local", "User", "123456", Duration.ofMinutes(10));
+        sender("test-key").sendCode("user@test.local", "User", "123456", Duration.ofMinutes(10), CodePurpose.VERIFY_EMAIL);
         brevo.verify();
     }
 
@@ -55,14 +55,14 @@ class EmailSenderTest {
     void brevoFailureBecomesEmailSendFailed() {
         brevo.expect(requestTo("https://brevo.test/v3/smtp/email")).andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
-        assertThatThrownBy(() -> sender("bad-key").sendVerificationCode("user@test.local", "User", "1", Duration.ofMinutes(10)))
+        assertThatThrownBy(() -> sender("bad-key").sendCode("user@test.local", "User", "1", Duration.ofMinutes(10), CodePurpose.VERIFY_EMAIL))
                 .isInstanceOf(ApiException.class)
                 .extracting("code").isEqualTo(ErrorCode.EMAIL_SEND_FAILED);
     }
 
     @Test
     void withoutBrevoOrSmtpTheCodeIsOnlyLogged() {
-        sender("").sendVerificationCode("user@test.local", "User", "123456", Duration.ofMinutes(10));
+        sender("").sendCode("user@test.local", "User", "123456", Duration.ofMinutes(10), CodePurpose.VERIFY_EMAIL);
         brevo.verify(); // no HTTP call expected
     }
 }

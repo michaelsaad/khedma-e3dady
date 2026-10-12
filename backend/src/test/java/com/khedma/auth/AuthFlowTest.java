@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khedma.TestcontainersConfig;
 import com.khedma.TestcontainersConfig.CapturingEmailSender;
+import com.khedma.auth.otp.CodePurpose;
 import com.khedma.user.Role;
 import com.khedma.user.UserRepository;
 import com.khedma.user.UserStatus;
@@ -132,7 +133,63 @@ class AuthFlowTest {
                 .andExpect(jsonPath("$.fieldErrors[?(@.field == 'password')].code").value("Size"));
     }
 
+    @Test
+    void forgotPasswordResetsThePasswordWithAnEmailedCode() throws Exception {
+        verifiedToken("forgot@test.local");
+
+        forgot("forgot@test.local").andExpect(status().isAccepted());
+        assertThat(emails.lastPurpose("forgot@test.local")).isEqualTo(CodePurpose.RESET_PASSWORD);
+
+        reset("forgot@test.local", wrongCode("forgot@test.local"), "brand-new-pass")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"));
+        reset("forgot@test.local", emails.lastCode("forgot@test.local"), "brand-new-pass")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
+
+        login("forgot@test.local").andExpect(status().isUnauthorized()); // old password is gone
+        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"forgot@test.local\",\"password\":\"brand-new-pass\"}"))
+                .andExpect(status().isOk());
+        // A used code can't be replayed.
+        reset("forgot@test.local", emails.lastCode("forgot@test.local"), "another-pass-1")
+                .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"));
+    }
+
+    @Test
+    void forgotPasswordDoesNotRevealUnknownEmails() throws Exception {
+        forgot("nobody@test.local").andExpect(status().isAccepted());
+        assertThat(emails.lastCode("nobody@test.local")).isNull();
+    }
+
+    @Test
+    void importedUnverifiedAccountCanSetItsPasswordAndKeepsItsRole() throws Exception {
+        var imported = new com.khedma.user.AppUser();
+        imported.setEmail("imported@test.local");
+        imported.setDisplayName("Imported Admin");
+        imported.setRole(Role.ADMIN);
+        imported.setStatus(UserStatus.APPROVED);
+        users.save(imported);
+
+        forgot("imported@test.local").andExpect(status().isAccepted());
+        reset("imported@test.local", emails.lastCode("imported@test.local"), "first-password-1")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.role").value("ADMIN"))
+                .andExpect(jsonPath("$.user.status").value("APPROVED"))
+                .andExpect(jsonPath("$.user.emailVerified").value(true));
+    }
+
     // ---- helpers --------------------------------------------------------------------------
+
+    private ResultActions forgot(String email) throws Exception {
+        return mvc.perform(post("/api/auth/forgot-password").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + email + "\"}"));
+    }
+
+    private ResultActions reset(String email, String code, String newPassword) throws Exception {
+        return mvc.perform(post("/api/auth/reset-password").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + email + "\",\"code\":\"" + code + "\",\"newPassword\":\"" + newPassword + "\"}"));
+    }
 
     private String verifiedToken(String email) throws Exception {
         register(email).andExpect(status().isAccepted());
