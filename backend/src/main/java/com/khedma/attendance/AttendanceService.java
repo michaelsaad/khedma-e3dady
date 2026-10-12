@@ -130,7 +130,9 @@ public class AttendanceService {
             attendance = attendanceRepository.save(attendance);
 
             for (AttendanceKind kind : AttendanceKind.values()) {
-                int points = kind == AttendanceKind.MASS ? settings.getMassPoints() : settings.getServicePoints();
+                // Before the points start date nothing is awarded; earlier awards can still be reversed.
+                int points = !settings.awardsPointsOn(date) ? 0
+                        : kind == AttendanceKind.MASS ? settings.getMassPoints() : settings.getServicePoints();
                 int delta = pointsService.syncAttendancePoints(student, attendance, kind, points, actorId);
                 if (delta > 0) awards++;
                 if (delta < 0) reversals++;

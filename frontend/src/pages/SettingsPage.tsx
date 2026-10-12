@@ -35,6 +35,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
     seasonStart: settings.seasonStart,
     seasonEnd: settings.seasonEnd,
     meetingDay: settings.meetingDay,
+    pointsStartDate: settings.pointsStartDate,
   });
 
   const save = useMutation({
@@ -77,6 +78,13 @@ function SettingsForm({ settings }: { settings: Settings }) {
               <HandHeart className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-brand-600" />
               <Input type="number" min={0} max={1000} required className="ps-9" value={form.servicePoints} onChange={(e) => setForm({ ...form, servicePoints: e.target.value })} />
             </div>
+          </Field>
+          <Field
+            label="بداية توزيع النقط"
+            error={errors.pointsStartDate}
+            hint="الحضور قبل التاريخ ده بيتسجل من غير نقط (زي الحضور اللي اتنقل من النظام القديم)."
+          >
+            <Input type="date" required value={form.pointsStartDate} onChange={(e) => setForm({ ...form, pointsStartDate: e.target.value })} />
           </Field>
         </div>
       </Card>

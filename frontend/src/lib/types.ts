@@ -94,6 +94,7 @@ export interface Settings {
   seasonStart: string;
   seasonEnd: string;
   meetingDay: DayOfWeek;
+  pointsStartDate: string;
   updatedBy: string | null;
   updatedAt: string;
 }

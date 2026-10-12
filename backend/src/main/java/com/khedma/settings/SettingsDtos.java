@@ -18,6 +18,7 @@ public final class SettingsDtos {
             LocalDate seasonStart,
             LocalDate seasonEnd,
             DayOfWeek meetingDay,
+            LocalDate pointsStartDate,
             String updatedBy,
             Instant updatedAt) {
 
@@ -28,6 +29,7 @@ public final class SettingsDtos {
                     settings.getSeasonStart(),
                     settings.getSeasonEnd(),
                     settings.getMeetingDay(),
+                    settings.getPointsStartDate(),
                     settings.getUpdatedBy() == null ? null : settings.getUpdatedBy().getDisplayName(),
                     settings.getUpdatedAt());
         }
@@ -38,5 +40,6 @@ public final class SettingsDtos {
             @NotNull @Min(value = 0) @Max(value = 1000) Integer servicePoints,
             @NotNull LocalDate seasonStart,
             @NotNull LocalDate seasonEnd,
-            @NotNull DayOfWeek meetingDay) {}
+            @NotNull DayOfWeek meetingDay,
+            @NotNull LocalDate pointsStartDate) {}
 }

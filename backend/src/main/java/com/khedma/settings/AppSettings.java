@@ -48,6 +48,14 @@ public class AppSettings {
     @Column(nullable = false)
     private DayOfWeek meetingDay;
 
+    /** Attendance on meetings before this date never awards points (e.g. imported history). */
+    @Column(nullable = false)
+    private LocalDate pointsStartDate;
+
+    public boolean awardsPointsOn(LocalDate meetingDate) {
+        return !meetingDate.isBefore(pointsStartDate);
+    }
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "updated_by_id")
     private AppUser updatedBy;

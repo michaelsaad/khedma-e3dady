@@ -1,0 +1,13 @@
+{
+  "name": "khedma-migrate-old-data",
+  "private": true,
+  "type": "module",
+  "description": "One-time import from the old Supabase app (e3dady2026) into the new Postgres schema",
+  "scripts": {
+    "dry-run": "node --env-file=.env.migrate migrate.mjs",
+    "apply": "node --env-file=.env.migrate migrate.mjs --apply"
+  },
+  "dependencies": {
+    "pg": "^8.16.0"
+  }
+}

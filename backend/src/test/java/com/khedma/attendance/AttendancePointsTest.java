@@ -123,13 +123,34 @@ class AttendancePointsTest {
     void reversalUsesOriginalAmountEvenAfterSettingsChange() {
         save(false, true); // +5
         settingsService.update(new UpdateSettingsRequest(10, 2, LocalDate.of(2026, 9, 18),
-                LocalDate.of(2027, 9, 30), DayOfWeek.FRIDAY), adminId);
+                LocalDate.of(2027, 9, 30), DayOfWeek.FRIDAY, LocalDate.of(2026, 9, 18)), adminId);
 
         save(false, false); // must reverse 5, not 10
         assertThat(balance()).isZero();
 
         save(false, true); // new award uses new setting
         assertThat(balance()).isEqualTo(10);
+    }
+
+    @Test
+    void meetingsBeforePointsStartDateAwardNothingButOldAwardsCanStillBeReversed() {
+        save(true, true); // +7 while distribution is on
+        settingsService.update(new UpdateSettingsRequest(5, 2, LocalDate.of(2026, 9, 18),
+                LocalDate.of(2027, 9, 30), DayOfWeek.FRIDAY, LocalDate.of(2026, 10, 16)), adminId);
+
+        // Imported-style history: marking an old meeting gives no points.
+        LocalDate oct2 = LocalDate.of(2026, 10, 2);
+        SaveAttendanceResult imported = attendanceService.save(oct2,
+                List.of(new AttendanceEntry(student.getId(), true, true)), adminId);
+        assertThat(imported.netPoints()).isZero();
+        assertThat(balance()).isEqualTo(7);
+
+        // Un-marking an old meeting that had no award doesn't take points away...
+        attendanceService.save(oct2, List.of(new AttendanceEntry(student.getId(), false, false)), adminId);
+        assertThat(balance()).isEqualTo(7);
+        // ...but an award that really happened is still reversed.
+        save(false, false);
+        assertThat(balance()).isZero();
     }
 
     @Test

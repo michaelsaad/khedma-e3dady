@@ -50,6 +50,7 @@ public class SettingsService {
         settings.setSeasonStart(request.seasonStart());
         settings.setSeasonEnd(request.seasonEnd());
         settings.setMeetingDay(request.meetingDay());
+        settings.setPointsStartDate(request.pointsStartDate());
         settings.setUpdatedBy(users.getReferenceById(actorId));
         settings.setUpdatedAt(clock.instant());
         return SettingsResponse.of(settings);
