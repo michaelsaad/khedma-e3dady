@@ -3,7 +3,7 @@ import {
   History,
   LayoutDashboard,
   LogOut,
-  Menu,
+  MoreHorizontal,
   Settings,
   ShieldCheck,
   Star,
@@ -32,8 +32,8 @@ const NAV: NavItem[] = [
   { to: "/me", label: "نقطي", icon: Star, role: "USER", requiresLink: true },
   { to: "/attendance", label: "الحضور", icon: CalendarCheck, role: "ADMIN" },
   { to: "/students", label: "المخدومين", icon: Users, role: "ADMIN" },
-  { to: "/transactions", label: "سجل النقط", icon: History, role: "ADMIN" },
   { to: "/groups", label: "الجروبات", icon: UsersRound, role: "ADMIN" },
+  { to: "/transactions", label: "سجل النقط", icon: History, role: "ADMIN" },
   { to: "/users", label: "المستخدمين", icon: ShieldCheck, role: "SUPER_ADMIN" },
   { to: "/settings", label: "الإعدادات", icon: Settings, role: "ADMIN" },
 ];
@@ -106,7 +106,7 @@ export function Layout() {
             onClick={() => setMoreOpen(true)}
             className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-stone-500"
           >
-            <Menu className="size-5" />
+            <MoreHorizontal className="size-5" />
             المزيد
           </button>
         </div>

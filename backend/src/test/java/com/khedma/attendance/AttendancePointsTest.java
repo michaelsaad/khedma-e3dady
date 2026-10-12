@@ -203,6 +203,35 @@ class AttendancePointsTest {
     }
 
     @Test
+    void skippingAMeetingReversesItsPointsAndRemovesItFromStatistics() {
+        save(true, true); // +7 on 9 Oct
+        assertThat(dashboardService.student(student.getId()).card().meetingsHeld()).isEqualTo(4);
+
+        SaveAttendanceResult skipped = attendanceService.skip(OCT_9, "Retreat", adminId);
+        assertThat(skipped.netPoints()).isEqualTo(-7);
+        assertThat(balance()).isZero();
+        assertThat(studentTransactions()).filteredOn(t -> t.getType() == TransactionType.ATTENDANCE_REVERSAL).hasSize(2);
+
+        var card = dashboardService.student(student.getId()).card();
+        assertThat(card.meetingsHeld()).isEqualTo(3); // 9 Oct no longer counts
+        assertThat(card.serviceCount()).isZero();
+        assertThat(attendanceService.forMeeting(OCT_9).skipped()).isTrue();
+        assertThat(attendanceService.meetings().skipped()).containsExactly(OCT_9);
+
+        // No attendance while skipped; skipping twice changes nothing.
+        assertThatThrownBy(() -> save(true, false))
+                .isInstanceOf(ApiException.class)
+                .extracting("code").isEqualTo(ErrorCode.MEETING_SKIPPED);
+        assertThat(attendanceService.skip(OCT_9, "Retreat", adminId).netPoints()).isZero();
+
+        // Restoring re-awards the recorded attendance.
+        SaveAttendanceResult restored = attendanceService.unskip(OCT_9, adminId);
+        assertThat(restored.netPoints()).isEqualTo(7);
+        assertThat(balance()).isEqualTo(7);
+        assertThat(dashboardService.student(student.getId()).card().meetingsHeld()).isEqualTo(4);
+    }
+
+    @Test
     void dashboardCardReflectsAttendanceAndPoints() {
         save(true, true);
         var card = dashboardService.student(student.getId()).card();

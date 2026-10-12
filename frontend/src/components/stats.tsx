@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { formatNumber, gradeLabel } from "@/lib/i18n";
 import type { StudentCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { ContactButtons } from "./ContactButtons";
 import { Avatar, Badge, Card } from "./ui";
 
 export function StatTile({
@@ -60,8 +61,8 @@ export function RankBadge({ rank }: { rank: number }) {
 /** Student card used on the dashboard grid. */
 export function StudentCardView({ card }: { card: StudentCard }) {
   return (
-    <Link to={`/s/${card.id}`} className="group block">
-      <Card className="h-full p-4 transition-shadow group-hover:shadow-md">
+    <Card className="flex h-full flex-col p-4 transition-shadow hover:shadow-md">
+      <Link to={`/s/${card.id}`} className="block flex-1">
         <div className="flex items-start gap-3">
           <Avatar name={card.name} />
           <div className="min-w-0 flex-1">
@@ -84,8 +85,9 @@ export function StudentCardView({ card }: { card: StudentCard }) {
           <RateRow icon={<HandHeart className="size-3.5" />} label="الخدمة" count={card.serviceCount} total={card.meetingsHeld} rate={card.serviceRate} tone="brand" />
           <RateRow icon={<Church className="size-3.5" />} label="القداس" count={card.massCount} total={card.meetingsHeld} rate={card.massRate} tone="blue" />
         </div>
-      </Card>
-    </Link>
+      </Link>
+      <ContactButtons phone={card.phone} name={card.name} size="sm" className="mt-4 border-t border-stone-100 pt-3" />
+    </Card>
   );
 }
 

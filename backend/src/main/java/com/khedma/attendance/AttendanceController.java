@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,6 +18,7 @@ import com.khedma.attendance.AttendanceDtos.MeetingAttendance;
 import com.khedma.attendance.AttendanceDtos.MeetingsResponse;
 import com.khedma.attendance.AttendanceDtos.SaveAttendanceRequest;
 import com.khedma.attendance.AttendanceDtos.SaveAttendanceResult;
+import com.khedma.attendance.AttendanceDtos.SkipMeetingRequest;
 import com.khedma.attendance.AttendanceDtos.UpdateStudentAttendanceRequest;
 import com.khedma.auth.AuthUser;
 
@@ -59,5 +61,20 @@ public class AttendanceController {
                                         @AuthenticationPrincipal AuthUser actor) {
         return attendanceService.save(date,
                 List.of(new AttendanceEntry(studentId, request.service(), request.mass())), actor.id());
+    }
+
+    /** Marks the meeting as not held: reverses its attendance points and leaves it out of statistics. */
+    @PutMapping("/{date}/skip")
+    public SaveAttendanceResult skip(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                     @Valid @RequestBody SkipMeetingRequest request,
+                                     @AuthenticationPrincipal AuthUser actor) {
+        return attendanceService.skip(date, request.reason(), actor.id());
+    }
+
+    /** Restores a skipped meeting and re-awards its attendance points. */
+    @DeleteMapping("/{date}/skip")
+    public SaveAttendanceResult unskip(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                       @AuthenticationPrincipal AuthUser actor) {
+        return attendanceService.unskip(date, actor.id());
     }
 }

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Church, HandHeart, Trophy } from "lucide-react";
 import { Link, useParams } from "react-router";
 import { AttendanceHistory } from "@/components/AttendanceHistory";
+import { ContactButtons } from "@/components/ContactButtons";
 import { RankBadge, RateRow } from "@/components/stats";
 import { TransactionList } from "@/components/TransactionList";
 import { Avatar, Badge, Card, ErrorState, Spinner } from "@/components/ui";
@@ -56,6 +57,14 @@ export function StudentProfile({ detail }: { detail: StudentDetail }) {
             <RankBadge rank={card.rank} />
           </div>
         </div>
+        {card.phone && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span dir="ltr" className="text-sm font-medium text-stone-600 tabular">
+              {card.phone}
+            </span>
+            <ContactButtons phone={card.phone} name={card.name} className="min-w-56 flex-1" />
+          </div>
+        )}
         <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
           <RateRow icon={<HandHeart className="size-4" />} label="حضور الخدمة" count={card.serviceCount} total={card.meetingsHeld} rate={card.serviceRate} tone="brand" />
           <RateRow icon={<Church className="size-4" />} label="حضور القداس" count={card.massCount} total={card.meetingsHeld} rate={card.massRate} tone="blue" />

@@ -115,12 +115,15 @@ export interface MeetingAttendance {
   nextMeeting: string | null;
   serviceCount: number;
   massCount: number;
+  skipped: boolean;
+  skipReason: string | null;
   rows: AttendanceRow[];
 }
 
 export interface MeetingsResponse {
   meetings: string[];
   today: string;
+  skipped: string[];
 }
 
 export interface SaveAttendanceResult {
@@ -135,6 +138,7 @@ export interface StudentCard {
   id: number;
   name: string;
   grade: Grade;
+  phone: string;
   groupId: number | null;
   groupName: string | null;
   points: number;

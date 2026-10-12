@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.khedma.attendance.Attendance;
 import com.khedma.attendance.AttendanceRepository;
 import com.khedma.attendance.MeetingCalendar;
+import com.khedma.attendance.SkippedMeetingRepository;
 import com.khedma.common.ApiException;
 import com.khedma.common.ErrorCode;
 import com.khedma.common.PageResponse;
@@ -54,15 +55,18 @@ public class DashboardService {
     private final SettingsService settingsService;
     private final MeetingCalendar calendar;
     private final PointsService pointsService;
+    private final SkippedMeetingRepository skippedMeetings;
 
     public DashboardService(StudentRepository students, GroupRepository groups, AttendanceRepository attendance,
-                            SettingsService settingsService, MeetingCalendar calendar, PointsService pointsService) {
+                            SettingsService settingsService, MeetingCalendar calendar, PointsService pointsService,
+                            SkippedMeetingRepository skippedMeetings) {
         this.students = students;
         this.groups = groups;
         this.attendance = attendance;
         this.settingsService = settingsService;
         this.calendar = calendar;
         this.pointsService = pointsService;
+        this.skippedMeetings = skippedMeetings;
     }
 
     @Transactional(readOnly = true)
@@ -152,7 +156,9 @@ public class DashboardService {
 
     private Season loadSeason() {
         AppSettings settings = settingsService.current();
-        List<LocalDate> meetings = calendar.pastMeetings(settings);
+        // Skipped meetings (not held) count for nothing: not in "meetings held", rates or history.
+        Set<LocalDate> skipped = skippedMeetings.allDates();
+        List<LocalDate> meetings = calendar.pastMeetings(settings).stream().filter(d -> !skipped.contains(d)).toList();
         Set<LocalDate> meetingSet = new HashSet<>(meetings);
 
         List<Attendance> records = meetings.isEmpty() ? List.of()
@@ -179,6 +185,7 @@ public class DashboardService {
                             s.getId(),
                             s.getName(),
                             s.getGrade(),
+                            s.getPhone(),
                             s.getGroup() == null ? null : s.getGroup().getId(),
                             s.getGroup() == null ? null : s.getGroup().getName(),
                             s.getPointsBalance(),

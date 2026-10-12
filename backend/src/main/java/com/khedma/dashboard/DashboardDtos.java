@@ -11,13 +11,15 @@ public final class DashboardDtos {
     private DashboardDtos() {}
 
     /**
-     * One card per student. No contact details: the dashboard is visible to every approved account.
+     * One card per student. Includes the phone so servants (USER role) can call or message families;
+     * they still can't change anything.
      * Rates are percentages (0-100) of the meetings held so far this season.
      */
     public record StudentCard(
             Long id,
             String name,
             Grade grade,
+            String phone,
             Long groupId,
             String groupName,
             int points,

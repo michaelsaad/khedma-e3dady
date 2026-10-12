@@ -40,6 +40,8 @@ public final class AttendanceDtos {
             LocalDate nextMeeting,
             int serviceCount,
             int massCount,
+            boolean skipped,
+            String skipReason,
             List<AttendanceRow> rows) {}
 
     /** Instant single-student update (e.g. tapping a toggle). */
@@ -54,5 +56,8 @@ public final class AttendanceDtos {
             int reversalsCreated,
             int netPoints) {}
 
-    public record MeetingsResponse(List<LocalDate> meetings, LocalDate today) {}
+    /** {@code skipped} lists the meetings marked as not held. */
+    public record MeetingsResponse(List<LocalDate> meetings, LocalDate today, List<LocalDate> skipped) {}
+
+    public record SkipMeetingRequest(@Size(max = 200) String reason) {}
 }

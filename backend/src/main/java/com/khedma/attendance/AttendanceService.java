@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -36,6 +37,7 @@ public class AttendanceService {
             .thenComparing(Student::getName, Collator.getInstance(Locale.forLanguageTag("ar")));
 
     private final AttendanceRepository attendanceRepository;
+    private final SkippedMeetingRepository skippedMeetings;
     private final StudentRepository students;
     private final UserRepository users;
     private final PointsService pointsService;
@@ -43,10 +45,11 @@ public class AttendanceService {
     private final MeetingCalendar calendar;
     private final Clock clock;
 
-    public AttendanceService(AttendanceRepository attendanceRepository, StudentRepository students,
-                             UserRepository users, PointsService pointsService, SettingsService settingsService,
-                             MeetingCalendar calendar, Clock clock) {
+    public AttendanceService(AttendanceRepository attendanceRepository, SkippedMeetingRepository skippedMeetings,
+                             StudentRepository students, UserRepository users, PointsService pointsService,
+                             SettingsService settingsService, MeetingCalendar calendar, Clock clock) {
         this.attendanceRepository = attendanceRepository;
+        this.skippedMeetings = skippedMeetings;
         this.students = students;
         this.users = users;
         this.pointsService = pointsService;
@@ -57,7 +60,9 @@ public class AttendanceService {
 
     @Transactional(readOnly = true)
     public MeetingsResponse meetings() {
-        return new MeetingsResponse(calendar.pastMeetings(settingsService.current()), calendar.today());
+        List<LocalDate> meetings = calendar.pastMeetings(settingsService.current());
+        var skipped = skippedMeetings.allDates();
+        return new MeetingsResponse(meetings, calendar.today(), meetings.stream().filter(skipped::contains).toList());
     }
 
     @Transactional(readOnly = true)
@@ -82,12 +87,15 @@ public class AttendanceService {
                 .toList();
         List<LocalDate> meetings = calendar.pastMeetings(settings);
         int index = meetings.indexOf(date);
+        Optional<SkippedMeeting> skipped = skippedMeetings.findById(date);
         return new MeetingAttendance(
                 date,
                 index > 0 ? meetings.get(index - 1) : null,
                 index >= 0 && index < meetings.size() - 1 ? meetings.get(index + 1) : null,
                 (int) rows.stream().filter(AttendanceRow::service).count(),
                 (int) rows.stream().filter(AttendanceRow::mass).count(),
+                skipped.isPresent(),
+                skipped.map(SkippedMeeting::getReason).orElse(null),
                 rows);
     }
 
@@ -99,6 +107,9 @@ public class AttendanceService {
     public SaveAttendanceResult save(LocalDate date, List<AttendanceEntry> entries, Long actorId) {
         AppSettings settings = settingsService.current();
         calendar.requireValidMeeting(date, settings);
+        if (skippedMeetings.existsById(date)) {
+            throw new ApiException(ErrorCode.MEETING_SKIPPED);
+        }
         if (new HashSet<>(entries.stream().map(AttendanceEntry::studentId).toList()).size() != entries.size()) {
             throw new ApiException(ErrorCode.DUPLICATE_ATTENDANCE_ENTRY);
         }
@@ -108,9 +119,7 @@ public class AttendanceService {
                 .sorted(Comparator.comparing(AttendanceEntry::studentId))
                 .toList();
 
-        int awards = 0;
-        int reversals = 0;
-        int net = 0;
+        PointsTally tally = new PointsTally();
         for (AttendanceEntry entry : ordered) {
             Student student = students.findByIdForUpdate(entry.studentId())
                     .filter(Student::isActive)
@@ -128,17 +137,69 @@ public class AttendanceService {
             attendance.setUpdatedBy(users.getReferenceById(actorId));
             attendance.setUpdatedAt(clock.instant());
             attendance = attendanceRepository.save(attendance);
-
-            for (AttendanceKind kind : AttendanceKind.values()) {
-                // Before the points start date nothing is awarded; earlier awards can still be reversed.
-                int points = !settings.awardsPointsOn(date) ? 0
-                        : kind == AttendanceKind.MASS ? settings.getMassPoints() : settings.getServicePoints();
-                int delta = pointsService.syncAttendancePoints(student, attendance, kind, points, actorId);
-                if (delta > 0) awards++;
-                if (delta < 0) reversals++;
-                net += delta;
-            }
+            syncPoints(student, attendance, settings, actorId, false, tally);
         }
-        return new SaveAttendanceResult(date, ordered.size(), awards, reversals, net);
+        return new SaveAttendanceResult(date, ordered.size(), tally.awards, tally.reversals, tally.net);
+    }
+
+    /**
+     * Marks a meeting as not held: every attendance point awarded for it is reversed, attendance
+     * can't be recorded while it's skipped, and the dashboard leaves it out of rates and counts.
+     * The attendance rows themselves are kept, so un-skipping restores everything.
+     */
+    @Transactional
+    public SaveAttendanceResult skip(LocalDate date, String reason, Long actorId) {
+        AppSettings settings = settingsService.current();
+        calendar.requireValidMeeting(date, settings);
+        SkippedMeeting skipped = skippedMeetings.findById(date).orElseGet(() -> {
+            SkippedMeeting created = new SkippedMeeting();
+            created.setMeetingDate(date);
+            created.setCreatedBy(users.getReferenceById(actorId));
+            created.setCreatedAt(clock.instant());
+            return created;
+        });
+        skipped.setReason(reason == null ? "" : reason.trim());
+        skippedMeetings.save(skipped);
+        return resyncMeeting(date, settings, actorId, true);
+    }
+
+    /** Restores a skipped meeting and re-awards points for its recorded attendance (from the points start date). */
+    @Transactional
+    public SaveAttendanceResult unskip(LocalDate date, Long actorId) {
+        AppSettings settings = settingsService.current();
+        calendar.requireValidMeeting(date, settings);
+        skippedMeetings.findById(date).ifPresent(skippedMeetings::delete);
+        return resyncMeeting(date, settings, actorId, false);
+    }
+
+    private SaveAttendanceResult resyncMeeting(LocalDate date, AppSettings settings, Long actorId, boolean skipped) {
+        List<Attendance> rows = attendanceRepository.findAllByMeetingDate(date).stream()
+                .sorted(Comparator.comparing(a -> a.getStudent().getId()))
+                .toList();
+        PointsTally tally = new PointsTally();
+        for (Attendance attendance : rows) {
+            Student student = students.findByIdForUpdate(attendance.getStudent().getId()).orElseThrow();
+            syncPoints(student, attendance, settings, actorId, skipped, tally);
+        }
+        return new SaveAttendanceResult(date, rows.size(), tally.awards, tally.reversals, tally.net);
+    }
+
+    private void syncPoints(Student student, Attendance attendance, AppSettings settings, Long actorId,
+                            boolean skipped, PointsTally tally) {
+        for (AttendanceKind kind : AttendanceKind.values()) {
+            // Before the points start date nothing is awarded; earlier awards can still be reversed.
+            int points = !settings.awardsPointsOn(attendance.getMeetingDate()) ? 0
+                    : kind == AttendanceKind.MASS ? settings.getMassPoints() : settings.getServicePoints();
+            int delta = pointsService.syncAttendancePoints(student, attendance, kind, points, actorId, skipped);
+            if (delta > 0) tally.awards++;
+            if (delta < 0) tally.reversals++;
+            tally.net += delta;
+        }
+    }
+
+    private static final class PointsTally {
+        int awards;
+        int reversals;
+        int net;
     }
 }

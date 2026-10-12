@@ -119,11 +119,21 @@ public class PointsService {
     @Transactional(propagation = Propagation.MANDATORY)
     public int syncAttendancePoints(Student lockedStudent, Attendance attendance, AttendanceKind kind,
                                     int points, Long actorId) {
+        return syncAttendancePoints(lockedStudent, attendance, kind, points, actorId, false);
+    }
+
+    /**
+     * Same as above; with {@code meetingSkipped} every active award is reversed regardless of the
+     * attendance flags, because a meeting that didn't happen earns no points.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public int syncAttendancePoints(Student lockedStudent, Attendance attendance, AttendanceKind kind,
+                                    int points, Long actorId, boolean meetingSkipped) {
         var active = transactions.findActiveAttendanceAwards(attendance.getId(), kind);
-        String note = kind.label() + " on " + attendance.getMeetingDate();
+        String note = kind.label() + " on " + attendance.getMeetingDate() + (meetingSkipped ? " (meeting skipped)" : "");
         int net = 0;
 
-        if (attendance.isPresent(kind)) {
+        if (attendance.isPresent(kind) && !meetingSkipped) {
             if (active.isEmpty() && points > 0) {
                 PointTransaction award = newTransaction(TransactionType.ATTENDANCE_AWARD, points,
                         note, actorId);
