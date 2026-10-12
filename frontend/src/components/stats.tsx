@@ -6,6 +6,7 @@ import type { StudentCard } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ContactButtons } from "./ContactButtons";
 import { Avatar, Badge, Card } from "./ui";
+import { copy } from "@/lib/copy";
 
 export function StatTile({
   label,
@@ -24,7 +25,7 @@ export function StatTile({
     stone: "bg-stone-100 text-stone-600",
     brand: "bg-brand-50 text-brand-700",
     gold: "bg-gold-100 text-gold-600",
-    blue: "bg-sky-50 text-sky-700",
+    blue: "bg-mass-50 text-mass-700",
   };
   return (
     <Card className="p-4">
@@ -42,7 +43,7 @@ export function RateBar({ value, tone }: { value: number; tone: "brand" | "blue"
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
       <div
-        className={cn("h-full rounded-full", tone === "brand" ? "bg-brand-600" : "bg-sky-500")}
+        className={cn("h-full rounded-full", tone === "brand" ? "bg-brand-600" : "bg-mass-400")}
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>
@@ -78,12 +79,12 @@ export function StudentCardView({ card }: { card: StudentCard }) {
         <div className="mt-4 flex items-baseline gap-1">
           <Trophy className="size-4 self-center text-gold-500" />
           <span className="text-2xl font-bold tabular">{formatNumber(card.points)}</span>
-          <span className="text-sm text-stone-500">نقطة</span>
+          <span className="text-sm text-stone-500">{copy.common.point}</span>
         </div>
 
         <div className="mt-3 space-y-2 text-xs text-stone-600">
-          <RateRow icon={<HandHeart className="size-3.5" />} label="الخدمة" count={card.serviceCount} total={card.meetingsHeld} rate={card.serviceRate} tone="brand" />
-          <RateRow icon={<Church className="size-3.5" />} label="القداس" count={card.massCount} total={card.meetingsHeld} rate={card.massRate} tone="blue" />
+          <RateRow icon={<HandHeart className="size-3.5" />} label={copy.common.serviceTitle} count={card.serviceCount} total={card.meetingsHeld} rate={card.serviceRate} tone="brand" />
+          <RateRow icon={<Church className="size-3.5" />} label={copy.common.massTitle} count={card.massCount} total={card.meetingsHeld} rate={card.massRate} tone="blue" />
         </div>
       </Link>
       <ContactButtons phone={card.phone} name={card.name} size="sm" className="mt-4 border-t border-stone-100 pt-3" />

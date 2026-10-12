@@ -41,5 +41,6 @@ public final class SettingsDtos {
             @NotNull LocalDate seasonStart,
             @NotNull LocalDate seasonEnd,
             @NotNull DayOfWeek meetingDay,
-            @NotNull LocalDate pointsStartDate) {}
+            /** Optional: when omitted the current value is kept (the site doesn't expose it). */
+            LocalDate pointsStartDate) {}
 }

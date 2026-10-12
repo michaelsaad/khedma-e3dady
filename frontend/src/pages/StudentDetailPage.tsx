@@ -9,6 +9,7 @@ import { Avatar, Badge, Card, ErrorState, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
 import { errorMessage, formatNumber, gradeLong } from "@/lib/i18n";
 import type { StudentDetail } from "@/lib/types";
+import { copy } from "@/lib/copy";
 
 export default function StudentDetailPage() {
   const { id } = useParams();
@@ -21,7 +22,7 @@ export default function StudentDetailPage() {
     <>
       <Link to="/" className="mb-4 inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800">
         <ArrowRight className="size-4" />
-        الرئيسية
+        {copy.student.backHome}
       </Link>
       {detail.isPending ? (
         <Spinner />
@@ -52,7 +53,7 @@ export function StudentProfile({ detail }: { detail: StudentDetail }) {
             <Trophy className="size-6 text-gold-600" />
             <div>
               <p className="text-2xl leading-none font-bold tabular">{formatNumber(card.points)}</p>
-              <p className="mt-1 text-xs text-stone-600">نقطة</p>
+              <p className="mt-1 text-xs text-stone-600">{copy.common.point}</p>
             </div>
             <RankBadge rank={card.rank} />
           </div>
@@ -66,20 +67,20 @@ export function StudentProfile({ detail }: { detail: StudentDetail }) {
           </div>
         )}
         <div className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
-          <RateRow icon={<HandHeart className="size-4" />} label="حضور الخدمة" count={card.serviceCount} total={card.meetingsHeld} rate={card.serviceRate} tone="brand" />
-          <RateRow icon={<Church className="size-4" />} label="حضور القداس" count={card.massCount} total={card.meetingsHeld} rate={card.massRate} tone="blue" />
+          <RateRow icon={<HandHeart className="size-4" />} label={copy.student.serviceAttendance} count={card.serviceCount} total={card.meetingsHeld} rate={card.serviceRate} tone="brand" />
+          <RateRow icon={<Church className="size-4" />} label={copy.student.massAttendance} count={card.massCount} total={card.meetingsHeld} rate={card.massRate} tone="blue" />
         </div>
       </Card>
 
       <Card className="p-5">
-        <h2 className="mb-3 font-semibold">الحضور</h2>
+        <h2 className="mb-3 font-semibold">{copy.student.attendance}</h2>
         <AttendanceHistory items={detail.attendance} />
       </Card>
 
       <Card className="p-5">
-        <h2 className="mb-1 font-semibold">آخر حركات النقط</h2>
+        <h2 className="mb-1 font-semibold">{copy.student.recentPoints}</h2>
         {detail.recentTransactions.length === 0 ? (
-          <p className="py-6 text-center text-sm text-stone-500">مفيش حركات لسه.</p>
+          <p className="py-6 text-center text-sm text-stone-500">{copy.common.noTransactions}</p>
         ) : (
           <TransactionList items={detail.recentTransactions} />
         )}

@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { errorMessage, formatDate, formatDateYear, formatNumber, formatShortDate, formatSigned, gradeLabel, GRADES } from "@/lib/i18n";
 import type { AttendanceRow, Grade, MeetingAttendance, MeetingsResponse, SaveAttendanceResult } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { copy } from "@/lib/copy";
 
 type Kind = "service" | "mass";
 
@@ -23,10 +24,10 @@ export default function AttendancePage() {
 
   return (
     <>
-      <PageHeader title="الحضور" subtitle="اضغط على خدمة أو قداس، والحفظ والنقط بيحصلوا على طول." />
+      <PageHeader title={copy.attendance.title} subtitle={copy.attendance.subtitle} />
       {!date ? (
         <Card>
-          <EmptyState icon={<CalendarDays className="size-10" />} title="لسه مفيش اجتماعات" text="أول اجتماع في السنة لسه مجاش." />
+          <EmptyState icon={<CalendarDays className="size-10" />} title={copy.attendance.noMeetingsTitle} text={copy.attendance.noMeetingsText} />
         </Card>
       ) : (
         <MeetingView date={date} meetings={list} skipped={meetings.data?.skipped ?? []} onNavigate={goTo} />
@@ -72,7 +73,7 @@ function MeetingView({
     },
     onSuccess: (result, row) => {
       if (result.netPoints !== 0) {
-        toast.success(`${row.studentName}: ${formatSigned(result.netPoints)} نقطة`, { duration: 1800 });
+        toast.success(copy.attendance.saved(row.studentName, formatSigned(result.netPoints)), { duration: 1800 });
       }
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
@@ -102,7 +103,7 @@ function MeetingView({
           size="icon"
           disabled={!meeting.data?.previousMeeting}
           onClick={() => meeting.data?.previousMeeting && onNavigate(meeting.data.previousMeeting)}
-          aria-label="الاجتماع اللي قبله"
+          aria-label={copy.attendance.previousMeeting}
         >
           <ChevronRight className="size-5" />
         </Button>
@@ -110,7 +111,7 @@ function MeetingView({
           <span className="font-semibold">{formatDate(date)}</span>
           <span className="flex items-center gap-1 text-xs text-stone-500">
             <CalendarDays className="size-3.5" />
-            {meeting.data?.skipped ? "متلغية" : isLatest ? "آخر اجتماع" : "اضغط لاختيار اجتماع تاني"}
+            {meeting.data?.skipped ? copy.attendance.skippedShort : isLatest ? copy.attendance.latest : copy.attendance.pickAnother}
           </span>
         </button>
         <Button
@@ -118,7 +119,7 @@ function MeetingView({
           size="icon"
           disabled={!meeting.data?.nextMeeting}
           onClick={() => meeting.data?.nextMeeting && onNavigate(meeting.data.nextMeeting)}
-          aria-label="الاجتماع اللي بعده"
+          aria-label={copy.attendance.nextMeeting}
         >
           <ChevronLeft className="size-5" />
         </Button>
@@ -133,26 +134,26 @@ function MeetingView({
       ) : (
         <>
           <div className="grid grid-cols-3 gap-2">
-            <Counter label="المخدومين" value={meeting.data.rows.length} icon={<Users className="size-4" />} />
-            <Counter label="الخدمة" value={meeting.data.serviceCount} icon={<HandHeart className="size-4" />} tone="brand" />
-            <Counter label="القداس" value={meeting.data.massCount} icon={<Church className="size-4" />} tone="blue" />
+            <Counter label={copy.common.students} value={meeting.data.rows.length} icon={<Users className="size-4" />} />
+            <Counter label={copy.common.serviceTitle} value={meeting.data.serviceCount} icon={<HandHeart className="size-4" />} tone="brand" />
+            <Counter label={copy.common.massTitle} value={meeting.data.massCount} icon={<Church className="size-4" />} tone="blue" />
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
-              <Input placeholder="دوّر باسم المخدوم" className="ps-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <Input placeholder={copy.common.searchByName} className="ps-9" value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <Segmented
               value={grade}
               onChange={setGrade}
-              options={[{ value: "ALL" as const, label: "الكل" }, ...GRADES.map((g) => ({ value: g, label: gradeLabel[g] }))]}
+              options={[{ value: "ALL" as const, label: copy.attendance.all }, ...GRADES.map((g) => ({ value: g, label: gradeLabel[g] }))]}
             />
           </div>
 
           <Card>
             {rows.length === 0 ? (
-              <EmptyState icon={<Users className="size-10" />} title="مفيش مخدومين" text="ضيف مخدومين من صفحة المخدومين، أو غيّر البحث." />
+              <EmptyState icon={<Users className="size-10" />} title={copy.common.noStudents} text={copy.attendance.noStudentsText} />
             ) : (
               <ul className="divide-y divide-stone-100">
                 {rows.map((row) => (
@@ -162,14 +163,14 @@ function MeetingView({
                       <Badge className="mt-0.5">{gradeLabel[row.grade]}</Badge>
                     </div>
                     <ToggleChip
-                      label="خدمة"
+                      label={copy.common.service}
                       active={row.service}
                       tone="brand"
                       disabled={saving.has(row.studentId)}
                       onClick={() => toggle(row, "service")}
                     />
                     <ToggleChip
-                      label="قداس"
+                      label={copy.common.mass}
                       active={row.mass}
                       tone="blue"
                       disabled={saving.has(row.studentId)}
@@ -186,14 +187,14 @@ function MeetingView({
             className="mx-auto flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-red-600"
           >
             <CalendarOff className="size-4" />
-            مفيش اجتماع الجمعة دي؟ إلغاء الجمعة
+            {copy.attendance.skipLink}
           </button>
         </>
       )}
 
       <SkipDialog date={date} open={skipOpen} onClose={() => setSkipOpen(false)} />
 
-      <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} title="اختار الاجتماع">
+      <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} title={copy.attendance.pickerTitle}>
         <MeetingPicker
           meetings={meetings}
           skipped={skipped}
@@ -242,8 +243,8 @@ function ToggleChip({
         "disabled:opacity-60",
         active
           ? tone === "brand"
-            ? "border-brand-600 bg-brand-600 text-white"
-            : "border-sky-500 bg-sky-500 text-white"
+            ? "border-brand-700 bg-brand-700 text-white"
+            : "border-mass-400 bg-mass-400 text-stone-900"
           : "border-stone-200 bg-white text-stone-500 hover:border-stone-300",
       )}
     >
@@ -254,7 +255,7 @@ function ToggleChip({
 }
 
 function Counter({ label, value, icon, tone = "stone" }: { label: string; value: number; icon: React.ReactNode; tone?: "stone" | "brand" | "blue" }) {
-  const tones = { stone: "text-stone-600", brand: "text-brand-700", blue: "text-sky-700" };
+  const tones = { stone: "text-stone-600", brand: "text-brand-700", blue: "text-mass-700" };
   return (
     <Card className="px-3 py-2.5">
       <p className={cn("flex items-center gap-1 text-xs", tones[tone])}>
@@ -298,11 +299,11 @@ function MeetingPicker({
               <button
                 key={d}
                 onClick={() => onSelect(d)}
-                title={skipped.includes(d) ? `${formatDateYear(d)} (متلغية)` : formatDateYear(d)}
+                title={skipped.includes(d) ? `${formatDateYear(d)} (${copy.attendance.skippedShort})` : formatDateYear(d)}
                 className={cn(
                   "rounded-xl border px-2 py-2.5 text-sm font-medium",
                   d === selected
-                    ? "border-brand-600 bg-brand-600 text-white"
+                    ? "border-brand-700 bg-brand-700 text-white"
                     : skipped.includes(d)
                       ? "border-dashed border-stone-300 bg-stone-50 text-stone-400 line-through"
                       : "border-stone-200 hover:bg-stone-50",
@@ -337,17 +338,17 @@ function SkipDialog({ date, open, onClose }: { date: string; open: boolean; onCl
   const [reason, setReason] = useState("");
   const skip = useMeetingStatusMutation(
     () => api.put<SaveAttendanceResult>(`/attendance/${date}/skip`, { reason }),
-    (r) => (r.netPoints < 0 ? `اتلغت الجمعة واتشال ${formatNumber(-r.netPoints)} نقطة` : "اتلغت الجمعة"),
+    (r) => copy.attendance.skipped(-r.netPoints),
   );
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="إلغاء الجمعة"
+      title={copy.attendance.skipTitle}
       footer={
         <>
           <Button variant="outline" className="flex-1" onClick={onClose}>
-            رجوع
+            {copy.common.back}
           </Button>
           <Button
             variant="danger"
@@ -355,22 +356,16 @@ function SkipDialog({ date, open, onClose }: { date: string; open: boolean; onCl
             loading={skip.isPending}
             onClick={() => skip.mutate(undefined, { onSuccess: () => { setReason(""); onClose(); } })}
           >
-            إلغاء الجمعة
+            {copy.attendance.skipConfirm}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
-        <p className="text-sm text-stone-600">
-          لو مفيش اجتماع <span className="font-semibold text-stone-900">{formatDate(date)}</span>:
-        </p>
-        <ul className="list-disc space-y-1 ps-5 text-sm text-stone-600">
-          <li>أي نقط اتوزعت على حضورها هتتشال.</li>
-          <li>مش هتتحسب في نسب الحضور ولا في عدد الاجتماعات.</li>
-          <li>الحضور المسجّل هيفضل محفوظ، ولو رجّعتها النقط هترجع.</li>
-        </ul>
-        <Field label="السبب (اختياري)">
-          <Input maxLength={200} placeholder="مثلًا: رحلة، أجازة، عيد" value={reason} onChange={(e) => setReason(e.target.value)} />
+        <p className="font-semibold text-stone-900">{formatDate(date)}</p>
+        <p className="text-sm text-stone-600">{copy.attendance.skipText}</p>
+        <Field label={copy.attendance.skipReason}>
+          <Input maxLength={200} placeholder={copy.attendance.skipReasonPlaceholder} value={reason} onChange={(e) => setReason(e.target.value)} />
         </Field>
       </div>
     </Dialog>
@@ -380,7 +375,7 @@ function SkipDialog({ date, open, onClose }: { date: string; open: boolean; onCl
 function SkippedBanner({ date, reason }: { date: string; reason: string | null }) {
   const unskip = useMeetingStatusMutation(
     () => api.delete<SaveAttendanceResult>(`/attendance/${date}/skip`),
-    (r) => (r.netPoints > 0 ? `رجعت الجمعة ورجع ${formatNumber(r.netPoints)} نقطة` : "رجعت الجمعة"),
+    (r) => copy.attendance.restored(r.netPoints),
   );
   return (
     <Card className="flex flex-col items-center gap-3 border-dashed px-5 py-8 text-center">
@@ -388,13 +383,12 @@ function SkippedBanner({ date, reason }: { date: string; reason: string | null }
         <CalendarOff className="size-6" />
       </span>
       <div>
-        <p className="font-semibold">الجمعة دي متلغية</p>
-        {reason && <p className="mt-1 text-sm text-stone-600">السبب: {reason}</p>}
-        <p className="mt-1 text-sm text-stone-500">مش بتتحسب في النسب ومفيش عليها نقط.</p>
+        <p className="font-semibold">{copy.attendance.skippedTitle}</p>
+        {reason && <p className="mt-1 text-sm text-stone-600">{copy.attendance.skippedReason(reason)}</p>}
       </div>
       <Button variant="secondary" loading={unskip.isPending} onClick={() => unskip.mutate(undefined)}>
         <RotateCcw className="size-4" />
-        رجّعها اجتماع عادي
+        {copy.attendance.restore}
       </Button>
     </Card>
   );

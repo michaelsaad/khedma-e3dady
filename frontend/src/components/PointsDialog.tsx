@@ -7,6 +7,7 @@ import type { ManualKind, Page, PointReason, Transaction } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { TransactionList } from "./TransactionList";
 import { Button, Dialog, Field, Input, Pagination, Segmented, Spinner } from "./ui";
+import { copy } from "@/lib/copy";
 
 export interface PointsTarget {
   type: "students" | "groups";
@@ -19,11 +20,11 @@ export interface PointsTarget {
 export function PointsDialog({ target, onClose }: { target: PointsTarget | null; onClose: () => void }) {
   const [tab, setTab] = useState<"new" | "history">("new");
   return (
-    <Dialog open={Boolean(target)} onClose={onClose} title={target ? `نقط ${target.name}` : ""}>
+    <Dialog open={Boolean(target)} onClose={onClose} title={target ? copy.points.dialogTitle(target.name) : ""}>
       {target && (
         <>
           <div className="mb-4 flex items-center justify-between rounded-2xl bg-stone-50 px-4 py-3">
-            <span className="text-sm text-stone-500">الرصيد الحالي</span>
+            <span className="text-sm text-stone-500">{copy.points.currentBalance}</span>
             <span className="text-xl font-bold tabular">{formatNumber(target.balance)}</span>
           </div>
           <Segmented
@@ -31,8 +32,8 @@ export function PointsDialog({ target, onClose }: { target: PointsTarget | null;
             value={tab}
             onChange={setTab}
             options={[
-              { value: "new", label: "حركة جديدة" },
-              { value: "history", label: "السجل" },
+              { value: "new", label: copy.points.newTab },
+              { value: "history", label: copy.points.historyTab },
             ]}
           />
           {tab === "new" ? <NewTransaction target={target} onDone={onClose} /> : <History target={target} />}
@@ -69,12 +70,12 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
         // Best effort: the transaction already succeeded, so a failed save shouldn't block it.
         await api
           .post("/point-reasons", { label: trimmed, defaultAmount: kind === "RESET" ? null : Number(amount) || null })
-          .catch(() => toast.warning("اتسجلت النقط، بس السبب متحفظش في القايمة"));
+          .catch(() => toast.warning(copy.points.reasonNotSaved));
       }
       return tx;
     },
     onSuccess: (tx) => {
-      toast.success(`${target.name}: ${formatSigned(tx.amount)} نقطة · الرصيد ${formatNumber(tx.balanceAfter)}`);
+      toast.success(copy.points.done(target.name, formatSigned(tx.amount), tx.balanceAfter));
       queryClient.invalidateQueries({ queryKey: [target.type] });
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -100,22 +101,22 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
         value={kind}
         onChange={setKind}
         options={[
-          { value: "ADD", label: "إضافة" },
-          { value: "DEDUCT", label: "خصم" },
-          { value: "RESET", label: "تصفير" },
+          { value: "ADD", label: copy.points.add },
+          { value: "DEDUCT", label: copy.points.deduct },
+          { value: "RESET", label: copy.points.reset },
         ]}
       />
       {kind !== "RESET" ? (
-        <Field label="عدد النقط" error={errors.amount}>
+        <Field label={copy.points.amount} error={errors.amount}>
           <Input type="number" inputMode="numeric" min={1} max={10000} required value={amount} onChange={(e) => setAmount(e.target.value)} />
         </Field>
       ) : (
         <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700">
-          هيتم خصم الرصيد كله ({formatNumber(target.balance)} نقطة).
+          {copy.points.resetWarning(target.balance)}
         </p>
       )}
-      <Field label="السبب" error={errors.notes}>
-        <Input required maxLength={200} placeholder="اختار من تحت أو اكتب سبب جديد" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      <Field label={copy.points.reason} error={errors.notes}>
+        <Input required maxLength={200} placeholder={copy.points.reasonPlaceholder} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
 
       {reasons.data && reasons.data.length > 0 && (
@@ -128,7 +129,7 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
               className={cn(
                 "rounded-full border px-3 py-1.5 text-sm transition-colors",
                 r.label === trimmed
-                  ? "border-brand-600 bg-brand-600 text-white"
+                  ? "border-brand-700 bg-brand-700 text-white"
                   : "border-stone-200 bg-white text-stone-700 hover:border-brand-300 hover:bg-brand-50",
               )}
             >
@@ -142,11 +143,11 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
       {trimmed && !isSavedReason && (
         <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
           <input type="checkbox" className="size-4 accent-brand-700" checked={saveReason} onChange={(e) => setSaveReason(e.target.checked)} />
-          احفظ السبب ده في القايمة عشان أختاره بعد كده
+          {copy.points.saveReason}
         </label>
       )}
       <Button type="submit" className="w-full" variant={kind === "ADD" ? "primary" : "danger"} loading={submit.isPending}>
-        {kind === "ADD" ? "إضافة النقط" : kind === "DEDUCT" ? "خصم النقط" : "تصفير الرصيد"}
+        {kind === "ADD" ? copy.points.submitAdd : kind === "DEDUCT" ? copy.points.submitDeduct : copy.points.submitReset}
       </Button>
     </form>
   );
@@ -161,7 +162,7 @@ function History({ target }: { target: PointsTarget }) {
   });
   if (history.isPending) return <Spinner />;
   if (history.isError) return <p className="text-sm text-red-600">{errorMessage(history.error)}</p>;
-  if (history.data.items.length === 0) return <p className="py-8 text-center text-sm text-stone-500">مفيش حركات لسه.</p>;
+  if (history.data.items.length === 0) return <p className="py-8 text-center text-sm text-stone-500">{copy.common.noTransactions}</p>;
   return (
     <>
       <TransactionList items={history.data.items} />

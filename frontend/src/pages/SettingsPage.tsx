@@ -7,12 +7,13 @@ import { Button, Card, ErrorState, Field, Input, PageHeader, Select, Spinner } f
 import { api, ApiError } from "@/lib/api";
 import { DAYS, dayLabel, errorMessage, fieldErrors, formatDateTime } from "@/lib/i18n";
 import type { DayOfWeek, Settings } from "@/lib/types";
+import { copy } from "@/lib/copy";
 
 export default function SettingsPage() {
   const settings = useQuery({ queryKey: ["settings"], queryFn: () => api.get<Settings>("/settings") });
   return (
     <>
-      <PageHeader title="إعدادات التطبيق" subtitle="النقط الأوتوماتيك للحضور، وإعدادات السنة." />
+      <PageHeader title={copy.settings.title} />
       {settings.isPending ? (
         <Spinner />
       ) : settings.isError ? (
@@ -35,14 +36,13 @@ function SettingsForm({ settings }: { settings: Settings }) {
     seasonStart: settings.seasonStart,
     seasonEnd: settings.seasonEnd,
     meetingDay: settings.meetingDay,
-    pointsStartDate: settings.pointsStartDate,
   });
 
   const save = useMutation({
     mutationFn: () =>
       api.put<Settings>("/settings", { ...form, massPoints: Number(form.massPoints), servicePoints: Number(form.servicePoints) }),
     onSuccess: (data) => {
-      toast.success("اتحفظت الإعدادات");
+      toast.success(copy.settings.saved);
       queryClient.setQueryData(["settings"], data);
       queryClient.invalidateQueries({ queryKey: ["meetings"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
@@ -62,43 +62,36 @@ function SettingsForm({ settings }: { settings: Settings }) {
       }}
     >
       <Card className="p-5">
-        <h2 className="font-semibold">نقط الحضور</h2>
+        <h2 className="font-semibold">{copy.settings.pointsTitle}</h2>
         <p className="mt-1 mb-4 text-sm text-stone-500">
-          بتتضاف لوحدها لما تسجّل الحضور. التغيير بيسري على الحضور الجديد بس، والحضور القديم بيفضل بالنقط اللي اتضافت ساعتها.
+          {copy.settings.pointsText}
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="نقط حضور القداس" error={errors.massPoints}>
+          <Field label={copy.settings.massPoints} error={errors.massPoints}>
             <div className="relative">
-              <Church className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-sky-600" />
+              <Church className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-mass-600" />
               <Input type="number" min={0} max={1000} required className="ps-9" value={form.massPoints} onChange={(e) => setForm({ ...form, massPoints: e.target.value })} />
             </div>
           </Field>
-          <Field label="نقط حضور الخدمة" error={errors.servicePoints}>
+          <Field label={copy.settings.servicePoints} error={errors.servicePoints}>
             <div className="relative">
               <HandHeart className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-brand-600" />
               <Input type="number" min={0} max={1000} required className="ps-9" value={form.servicePoints} onChange={(e) => setForm({ ...form, servicePoints: e.target.value })} />
             </div>
           </Field>
-          <Field
-            label="بداية توزيع النقط"
-            error={errors.pointsStartDate}
-            hint="الحضور قبل التاريخ ده بيتسجل من غير نقط (زي الحضور اللي اتنقل من النظام القديم)."
-          >
-            <Input type="date" required value={form.pointsStartDate} onChange={(e) => setForm({ ...form, pointsStartDate: e.target.value })} />
-          </Field>
         </div>
       </Card>
 
       <Card className="p-5">
-        <h2 className="mb-4 font-semibold">السنة والاجتماعات</h2>
+        <h2 className="mb-4 font-semibold">{copy.settings.seasonTitle}</h2>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="بداية السنة" error={errors.seasonStart}>
+          <Field label={copy.settings.seasonStart} error={errors.seasonStart}>
             <Input type="date" required value={form.seasonStart} onChange={(e) => setForm({ ...form, seasonStart: e.target.value })} />
           </Field>
-          <Field label="نهاية السنة" error={errors.seasonEnd}>
+          <Field label={copy.settings.seasonEnd} error={errors.seasonEnd}>
             <Input type="date" required value={form.seasonEnd} onChange={(e) => setForm({ ...form, seasonEnd: e.target.value })} />
           </Field>
-          <Field label="يوم الاجتماع">
+          <Field label={copy.settings.meetingDay}>
             <Select value={form.meetingDay} onChange={(e) => setForm({ ...form, meetingDay: e.target.value as DayOfWeek })}>
               {DAYS.map((d) => (
                 <option key={d} value={d}>
@@ -112,10 +105,10 @@ function SettingsForm({ settings }: { settings: Settings }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-xs text-stone-500">
-          {settings.updatedBy ? `آخر تعديل: ${settings.updatedBy} · ${formatDateTime(settings.updatedAt)}` : ""}
+          {settings.updatedBy ? copy.settings.lastEdit(settings.updatedBy, formatDateTime(settings.updatedAt)) : ""}
         </p>
         <Button type="submit" loading={save.isPending}>
-          حفظ الإعدادات
+          {copy.settings.save}
         </Button>
       </div>
     </form>

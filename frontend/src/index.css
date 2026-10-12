@@ -3,14 +3,26 @@
 @theme {
   --font-sans: "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
 
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-200: #99f6e4;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
+  /* Deep gold, matching the logo frame. 700+ keeps white text above 4.5:1 contrast. */
+  --color-brand-50: #fdf9ec;
+  --color-brand-100: #faefcc;
+  --color-brand-200: #f3dc95;
+  --color-brand-300: #e6c25f;
+  --color-brand-500: #c99a2e;
+  --color-brand-600: #a97c14;
+  --color-brand-700: #8c650f;
+  --color-brand-800: #6f500e;
+  --color-brand-900: #523b0c;
+
+  /* Light gold for mass (service uses the deep gold brand colour). Use dark text on 300-500. */
+  --color-mass-50: #fdf8e7;
+  --color-mass-100: #faeec4;
+  --color-mass-300: #ecca72;
+  --color-mass-400: #e3b84f;
+  --color-mass-500: #d9a83a;
+  --color-mass-600: #b98a26;
+  --color-mass-700: #946c1a;
+  --color-mass-800: #6f5113;
 
   --color-gold-100: #fef3c7;
   --color-gold-500: #f59e0b;

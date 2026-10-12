@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/i18n";
 import type { StudentDetail } from "@/lib/types";
 import { StudentProfile } from "./StudentDetailPage";
+import { copy } from "@/lib/copy";
 
 /** The linked student's own profile; same view as the dashboard detail page. */
 export default function MyPointsPage() {
@@ -16,11 +17,11 @@ export default function MyPointsPage() {
   });
 
   if (!user?.studentId) {
-    return <ErrorState message="حسابك مش مربوط بمخدوم لسه. كلّم مسؤول الخدمة." />;
+    return <ErrorState message={copy.myPoints.notLinked} />;
   }
   return (
     <>
-      <PageHeader title="نقطي" />
+      <PageHeader title={copy.myPoints.title} />
       {detail.isPending ? <Spinner /> : detail.isError ? <ErrorState message={errorMessage(detail.error)} /> : <StudentProfile detail={detail.data} />}
     </>
   );

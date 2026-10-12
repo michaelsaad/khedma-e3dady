@@ -7,6 +7,7 @@ import { Badge, Button, Card, Dialog, EmptyState, ErrorState, Field, Input, Page
 import { api, ApiError } from "@/lib/api";
 import { errorMessage, fieldErrors, formatNumber, gradeLabel, gradeLong, GRADES } from "@/lib/i18n";
 import type { Grade, Group, Page, Student } from "@/lib/types";
+import { copy } from "@/lib/copy";
 
 export default function StudentsPage() {
   const [search, setSearch] = useState("");
@@ -33,12 +34,12 @@ export default function StudentsPage() {
   return (
     <>
       <PageHeader
-        title="المخدومين"
-        subtitle={students.data ? `${formatNumber(students.data.totalItems)} مخدوم` : undefined}
+        title={copy.students.title}
+        subtitle={students.data ? copy.common.studentsCount(students.data.totalItems) : undefined}
         actions={
           <Button onClick={() => setEditing("new")}>
             <Plus className="size-4" />
-            مخدوم جديد
+            {copy.students.add}
           </Button>
         }
       />
@@ -46,10 +47,10 @@ export default function StudentsPage() {
       <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
         <div className="relative">
           <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-stone-400" />
-          <Input placeholder="دوّر بالاسم أو التليفون" className="ps-9" value={search} onChange={(e) => resetPage(setSearch)(e.target.value)} />
+          <Input placeholder={copy.students.searchPlaceholder} className="ps-9" value={search} onChange={(e) => resetPage(setSearch)(e.target.value)} />
         </div>
         <Select value={grade} onChange={(e) => resetPage(setGrade)(e.target.value as Grade | "")}>
-          <option value="">كل الصفوف</option>
+          <option value="">{copy.common.allGrades}</option>
           {GRADES.map((g) => (
             <option key={g} value={g}>
               {gradeLabel[g]}
@@ -57,7 +58,7 @@ export default function StudentsPage() {
           ))}
         </Select>
         <Select value={groupId} onChange={(e) => resetPage(setGroupId)(e.target.value)}>
-          <option value="">كل الجروبات</option>
+          <option value="">{copy.common.allGroups}</option>
           {groups.data?.map((g) => (
             <option key={g.id} value={g.id}>
               {g.name}
@@ -74,9 +75,9 @@ export default function StudentsPage() {
         <Card>
           <EmptyState
             icon={<Users className="size-10" />}
-            title="مفيش مخدومين"
-            text={q || grade || groupId ? "جرّب تغيّر البحث أو الفلتر." : "ابدأ بإضافة أول مخدوم."}
-            action={!q && !grade && !groupId && <Button onClick={() => setEditing("new")}>إضافة مخدوم</Button>}
+            title={copy.common.noStudents}
+            text={q || grade || groupId ? copy.common.tryOtherFilter : copy.students.startAdding}
+            action={!q && !grade && !groupId && <Button onClick={() => setEditing("new")}>{copy.students.addFirst}</Button>}
           />
         </Card>
       ) : (
@@ -100,17 +101,17 @@ export default function StudentsPage() {
                   </div>
                   <button
                     onClick={() => setPoints({ type: "students", id: s.id, name: s.name, balance: s.pointsBalance })}
-                    aria-label={`نقط ${s.name}`}
+                    aria-label={copy.students.pointsLabel(s.name)}
                     className="flex items-center gap-1.5 rounded-xl bg-gold-100/70 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-gold-100"
                   >
                     <Coins className="size-4" />
                     <span className="tabular">{formatNumber(s.pointsBalance)}</span>
                   </button>
                   <div className="flex">
-                    <Button variant="ghost" size="icon" onClick={() => setEditing(s)} aria-label="تعديل">
+                    <Button variant="ghost" size="icon" onClick={() => setEditing(s)} aria-label={copy.common.edit}>
                       <Pencil className="size-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setRemoving(s)} aria-label="إزالة" className="hover:text-red-600">
+                    <Button variant="ghost" size="icon" onClick={() => setRemoving(s)} aria-label={copy.common.remove} className="hover:text-red-600">
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
@@ -133,7 +134,7 @@ function StudentForm({ student, groups, onClose }: { student: Student | "new" | 
   const isNew = student === "new";
   const existing = student && student !== "new" ? student : null;
   return (
-    <Dialog open={Boolean(student)} onClose={onClose} title={isNew ? "مخدوم جديد" : "تعديل المخدوم"}>
+    <Dialog open={Boolean(student)} onClose={onClose} title={isNew ? copy.students.newTitle : copy.students.editTitle}>
       {student && <StudentFormBody key={existing?.id ?? "new"} existing={existing} groups={groups} onClose={onClose} />}
     </Dialog>
   );
@@ -154,7 +155,7 @@ function StudentFormBody({ existing, groups, onClose }: { existing: Student | nu
       return existing ? api.put<Student>(`/students/${existing.id}`, body) : api.post<Student>("/students", body);
     },
     onSuccess: (s) => {
-      toast.success(existing ? "اتحفظت التعديلات" : `اتضاف ${s.name}`);
+      toast.success(existing ? copy.students.savedChanges : copy.students.added(s.name));
       queryClient.invalidateQueries({ queryKey: ["students"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
@@ -175,10 +176,10 @@ function StudentFormBody({ existing, groups, onClose }: { existing: Student | nu
         save.mutate();
       }}
     >
-      <Field label="الاسم" error={errors.name}>
+      <Field label={copy.common.name} error={errors.name}>
         <Input required minLength={2} maxLength={100} autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
       </Field>
-      <Field label="الصف" error={errors.grade}>
+      <Field label={copy.students.grade} error={errors.grade}>
         <Select value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value as Grade })}>
           {GRADES.map((g) => (
             <option key={g} value={g}>
@@ -187,12 +188,12 @@ function StudentFormBody({ existing, groups, onClose }: { existing: Student | nu
           ))}
         </Select>
       </Field>
-      <Field label="التليفون" error={errors.phone} hint="اختياري">
+      <Field label={copy.students.phone} error={errors.phone} hint={copy.common.optional}>
         <Input type="tel" dir="ltr" maxLength={30} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
       </Field>
-      <Field label="الجروب">
+      <Field label={copy.students.group}>
         <Select value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
-          <option value="">من غير جروب</option>
+          <option value="">{copy.students.noGroup}</option>
           {groups.map((g) => (
             <option key={g.id} value={g.id}>
               {g.name}
@@ -201,7 +202,7 @@ function StudentFormBody({ existing, groups, onClose }: { existing: Student | nu
         </Select>
       </Field>
       <Button type="submit" className="w-full" loading={save.isPending}>
-        {existing ? "حفظ" : "إضافة"}
+        {existing ? copy.common.save : copy.common.add}
       </Button>
     </form>
   );
@@ -212,7 +213,7 @@ function RemoveDialog({ student, onClose }: { student: Student | null; onClose: 
   const remove = useMutation({
     mutationFn: (id: number) => api.delete(`/students/${id}`),
     onSuccess: () => {
-      toast.success("اتشال المخدوم");
+      toast.success(copy.students.removed);
       queryClient.invalidateQueries({ queryKey: ["students"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
@@ -224,21 +225,20 @@ function RemoveDialog({ student, onClose }: { student: Student | null; onClose: 
     <Dialog
       open={Boolean(student)}
       onClose={onClose}
-      title="إزالة مخدوم"
+      title={copy.students.removeTitle}
       footer={
         <>
           <Button variant="outline" className="flex-1" onClick={onClose}>
-            إلغاء
+            {copy.common.cancel}
           </Button>
           <Button variant="danger" className="flex-1" loading={remove.isPending} onClick={() => student && remove.mutate(student.id)}>
-            إزالة
+            {copy.common.remove}
           </Button>
         </>
       }
     >
       <p className="text-sm text-stone-600">
-        هتشيل <span className="font-semibold text-stone-900">{student?.name}</span> من القايمة. حضوره ونقطه هيفضلوا محفوظين، ولو
-        ضفته تاني بنفس الاسم والصف هيرجع بيهم.
+        {copy.students.removeBefore} <span className="font-semibold text-stone-900">{student?.name}</span> {copy.students.removeAfter}
       </p>
     </Dialog>
   );

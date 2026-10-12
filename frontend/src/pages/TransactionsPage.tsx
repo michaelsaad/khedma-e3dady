@@ -6,6 +6,7 @@ import { Card, EmptyState, ErrorState, PageHeader, Pagination, Spinner } from "@
 import { api } from "@/lib/api";
 import { errorMessage } from "@/lib/i18n";
 import type { Page, Transaction } from "@/lib/types";
+import { copy } from "@/lib/copy";
 
 /** Every points movement, newest first. Manual changes are made from the students/groups pages. */
 export default function TransactionsPage() {
@@ -18,14 +19,14 @@ export default function TransactionsPage() {
 
   return (
     <>
-      <PageHeader title="سجل النقط" subtitle="كل حركات النقط للمخدومين والجروبات. لإضافة نقط افتح المخدوم أو الجروب." />
+      <PageHeader title={copy.history.title} subtitle={copy.history.subtitle} />
       {history.isPending ? (
         <Spinner />
       ) : history.isError ? (
         <ErrorState message={errorMessage(history.error)} onRetry={() => history.refetch()} />
       ) : history.data.items.length === 0 ? (
         <Card>
-          <EmptyState icon={<Coins className="size-10" />} title="مفيش حركات لسه" text="النقط بتتسجل هنا أول ما تسجّل حضور أو تضيف نقط." />
+          <EmptyState icon={<Coins className="size-10" />} title={copy.history.emptyTitle} text={copy.history.emptyText} />
         </Card>
       ) : (
         <>

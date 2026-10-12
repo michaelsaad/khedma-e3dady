@@ -1,7 +1,8 @@
 import { CalendarCheck, CalendarX, Minus, Plus, RotateCcw } from "lucide-react";
-import { formatDateTime, formatNumber, formatSigned, transactionNote, typeLabel } from "@/lib/i18n";
+import { formatDateTime, formatSigned, transactionNote, typeLabel } from "@/lib/i18n";
 import type { Transaction } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { copy } from "@/lib/copy";
 
 const ICONS = {
   MANUAL_ADD: Plus,
@@ -31,7 +32,7 @@ export function TransactionList({ items, showTarget }: { items: Transaction[]; s
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-stone-900">
                 {showTarget && (
-                  <span className="text-stone-500">{t.studentName ?? `جروب ${t.groupName}`} · </span>
+                  <span className="text-stone-500">{t.studentName ?? copy.common.groupLabel(t.groupName)} · </span>
                 )}
                 {transactionNote(t)}
               </p>
@@ -44,7 +45,7 @@ export function TransactionList({ items, showTarget }: { items: Transaction[]; s
               <p className={cn("font-semibold tabular", positive ? "text-brand-700" : "text-red-600")} dir="ltr">
                 {formatSigned(t.amount)}
               </p>
-              <p className="text-xs text-stone-400 tabular">الرصيد {formatNumber(t.balanceAfter)}</p>
+              <p className="text-xs text-stone-400 tabular">{copy.common.balance(t.balanceAfter)}</p>
             </div>
           </li>
         );

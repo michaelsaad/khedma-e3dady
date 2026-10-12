@@ -203,6 +203,16 @@ class AttendancePointsTest {
     }
 
     @Test
+    void savingSettingsWithoutPointsStartDateKeepsTheCurrentOne() {
+        settingsService.update(new UpdateSettingsRequest(5, 2, LocalDate.of(2026, 9, 18),
+                LocalDate.of(2027, 9, 30), DayOfWeek.FRIDAY, LocalDate.of(2026, 10, 16)), adminId);
+        settingsService.update(new UpdateSettingsRequest(6, 3, LocalDate.of(2026, 9, 18),
+                LocalDate.of(2027, 9, 30), DayOfWeek.FRIDAY, null), adminId);
+        assertThat(settingsService.get().pointsStartDate()).isEqualTo(LocalDate.of(2026, 10, 16));
+        assertThat(settingsService.get().massPoints()).isEqualTo(6);
+    }
+
+    @Test
     void skippingAMeetingReversesItsPointsAndRemovesItFromStatistics() {
         save(true, true); // +7 on 9 Oct
         assertThat(dashboardService.student(student.getId()).card().meetingsHeld()).isEqualTo(4);

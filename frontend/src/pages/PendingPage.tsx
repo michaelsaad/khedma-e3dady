@@ -4,6 +4,7 @@ import { Navigate } from "react-router";
 import { useAuth } from "@/auth/AuthProvider";
 import { Brand } from "@/components/Layout";
 import { Button, Card } from "@/components/ui";
+import { copy } from "@/lib/copy";
 
 export default function PendingPage() {
   const { user, signOut } = useAuth();
@@ -22,22 +23,22 @@ export default function PendingPage() {
         >
           {rejected ? <XCircle className="size-7" /> : <Clock className="size-7" />}
         </span>
-        <h1 className="text-xl font-bold">{rejected ? "طلبك اترفض" : "حسابك في انتظار الموافقة"}</h1>
+        <h1 className="text-xl font-bold">{rejected ? copy.pending.rejectedTitle : copy.pending.waitingTitle}</h1>
         <p className="mt-2 text-sm text-stone-500">
           {rejected
-            ? "لو شايف إن ده غلط، كلّم مسؤول الخدمة."
-            : `أهلًا ${user?.displayName ?? ""}! مسؤول الخدمة لازم يوافق على حسابك الأول، وبعدها تقدر تدخل.`}
+            ? copy.pending.rejectedText
+            : copy.pending.waitingText(user?.displayName ?? "")}
         </p>
         <div className="mt-6 flex justify-center gap-2">
           {!rejected && (
             <Button variant="secondary" onClick={() => queryClient.invalidateQueries({ queryKey: ["me"] })}>
               <RefreshCw className="size-4" />
-              تحديث
+              {copy.pending.refresh}
             </Button>
           )}
           <Button variant="ghost" onClick={signOut}>
             <LogOut className="size-4" />
-            خروج
+            {copy.pending.signOut}
           </Button>
         </div>
       </Card>

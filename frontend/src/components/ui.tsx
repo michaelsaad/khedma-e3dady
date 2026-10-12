@@ -8,8 +8,8 @@ import {
   type SelectHTMLAttributes,
 } from "react";
 import { createPortal } from "react-dom";
-import { formatNumber } from "@/lib/i18n";
 import { cn, initials } from "@/lib/utils";
+import { copy } from "@/lib/copy";
 
 // ---- Button ------------------------------------------------------------------------------
 
@@ -151,7 +151,7 @@ export function Badge({
     brand: "bg-brand-50 text-brand-800",
     gold: "bg-gold-100 text-amber-800",
     red: "bg-red-50 text-red-700",
-    blue: "bg-sky-50 text-sky-800",
+    blue: "bg-mass-50 text-mass-800",
   };
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium", tones[tone], className)}>
@@ -206,7 +206,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
       <p>{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" className="mt-3" onClick={onRetry}>
-          حاول تاني
+          {copy.common.retry}
         </Button>
       )}
     </div>
@@ -228,15 +228,15 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between gap-3 pt-4 text-sm text-stone-600">
       <span>
-        صفحة {formatNumber(page + 1)} من {formatNumber(totalPages)} · {formatNumber(totalItems)} نتيجة
+        {copy.common.pageOf(page + 1, totalPages, totalItems)}
       </span>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" disabled={page === 0} onClick={() => onChange(page - 1)} aria-label="السابق">
+        <Button variant="outline" size="sm" disabled={page === 0} onClick={() => onChange(page - 1)} aria-label={copy.common.previous}>
           <ChevronRight className="size-4" />
-          السابق
+          {copy.common.previous}
         </Button>
-        <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => onChange(page + 1)} aria-label="التالي">
-          التالي
+        <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => onChange(page + 1)} aria-label={copy.common.next}>
+          {copy.common.next}
           <ChevronLeft className="size-4" />
         </Button>
       </div>
@@ -273,17 +273,17 @@ export function Dialog({
 
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>
       <div className="absolute inset-0 bg-stone-900/40 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative flex max-h-[90dvh] w-full flex-col rounded-t-3xl bg-white shadow-xl sm:max-w-lg sm:rounded-3xl">
+      <div className="relative flex max-h-[85dvh] w-full max-w-lg flex-col rounded-3xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-stone-100 px-5 py-4">
           <h2 className="text-lg font-semibold">{title}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} aria-label="إغلاق">
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label={copy.common.close}>
             <X className="size-5" />
           </Button>
         </div>
         <div className="overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="safe-bottom flex gap-2 border-t border-stone-100 px-5 py-4">{footer}</div>}
+        {footer && <div className="flex gap-3 border-t border-stone-100 px-5 py-4 [&>button]:h-12">{footer}</div>}
       </div>
     </div>,
     document.body,

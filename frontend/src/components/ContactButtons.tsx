@@ -1,5 +1,6 @@
 import { MessageCircle, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { copy } from "@/lib/copy";
 
 /** Egyptian mobile numbers are stored locally (01xxxxxxxxx); WhatsApp needs the international form. */
 export function whatsappNumber(phone: string) {
@@ -20,21 +21,21 @@ export function ContactButtons({ phone, name, size = "md", className }: { phone:
     <div className={cn("flex gap-2", className)}>
       <a
         href={`tel:${phone.replace(/[^\d+]/g, "")}`}
-        aria-label={`اتصل بـ ${name}`}
+        aria-label={copy.student.callLabel(name)}
         className={cn(base, sizing, "bg-brand-50 text-brand-800 hover:bg-brand-100")}
       >
         <Phone className="size-4" />
-        اتصال
+        {copy.student.call}
       </a>
       <a
         href={`https://wa.me/${whatsappNumber(phone)}`}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label={`واتساب ${name}`}
+        aria-label={copy.student.whatsappLabel(name)}
         className={cn(base, sizing, "bg-[#e7f8ee] text-[#1a7f45] hover:bg-[#d3f2df]")}
       >
         <MessageCircle className="size-4" />
-        واتساب
+        {copy.student.whatsapp}
       </a>
     </div>
   );

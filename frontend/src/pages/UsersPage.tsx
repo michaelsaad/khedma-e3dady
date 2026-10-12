@@ -7,6 +7,7 @@ import { Avatar, Badge, Button, Card, Dialog, EmptyState, ErrorState, Input, Pag
 import { api } from "@/lib/api";
 import { errorMessage, formatDateTime, gradeLabel, roleLabel, statusLabel } from "@/lib/i18n";
 import type { Page, Role, Student, User, UserStatus } from "@/lib/types";
+import { copy } from "@/lib/copy";
 
 const ROLES: Role[] = ["USER", "ADMIN", "SUPER_ADMIN"];
 
@@ -20,7 +21,7 @@ export default function UsersPage() {
   const update = useMutation({
     mutationFn: ({ id, ...body }: { id: number; role?: Role; status?: UserStatus }) => api.patch<User>(`/users/${id}`, body),
     onSuccess: () => {
-      toast.success("اتحفظ");
+      toast.success(copy.users.saved);
       queryClient.invalidateQueries({ queryKey: ["users"] });
     },
     onError: (error) => toast.error(errorMessage(error)),
@@ -35,7 +36,7 @@ export default function UsersPage() {
 
   return (
     <>
-      <PageHeader title="المستخدمين" subtitle="وافق على الحسابات الجديدة، وحدد مين أدمن." />
+      <PageHeader title={copy.users.title} subtitle={copy.users.subtitle} />
       <Segmented
         className="mb-4"
         value={filter}
@@ -52,7 +53,7 @@ export default function UsersPage() {
         <ErrorState message={errorMessage(users.error)} onRetry={() => users.refetch()} />
       ) : visible.length === 0 ? (
         <Card>
-          <EmptyState icon={<ShieldCheck className="size-10" />} title={filter === "PENDING" ? "مفيش طلبات جديدة" : "مفيش مستخدمين هنا"} />
+          <EmptyState icon={<ShieldCheck className="size-10" />} title={filter === "PENDING" ? copy.users.noRequests : copy.users.empty} />
         </Card>
       ) : (
         <Card>
@@ -64,23 +65,23 @@ export default function UsersPage() {
                   <Avatar name={u.displayName} url={u.avatarUrl} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">
-                      {u.displayName} {self && <Badge tone="brand">إنت</Badge>}
+                      {u.displayName} {self && <Badge tone="brand">{copy.users.you}</Badge>}
                     </p>
                     <p className="truncate text-xs text-stone-500" dir="ltr">
                       {u.email}
                     </p>
-                    {u.lastLoginAt && <p className="text-xs text-stone-400">آخر دخول {formatDateTime(u.lastLoginAt)}</p>}
+                    {u.lastLoginAt && <p className="text-xs text-stone-400">{copy.users.lastLogin(formatDateTime(u.lastLoginAt))}</p>}
                   </div>
 
                   {u.status === "PENDING" ? (
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => update.mutate({ id: u.id, status: "APPROVED" })}>
                         <Check className="size-4" />
-                        موافقة
+                        {copy.users.approve}
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => update.mutate({ id: u.id, status: "REJECTED" })}>
                         <X className="size-4" />
-                        رفض
+                        {copy.users.reject}
                       </Button>
                     </div>
                   ) : (
@@ -90,7 +91,7 @@ export default function UsersPage() {
                         value={u.role}
                         disabled={self}
                         onChange={(e) => update.mutate({ id: u.id, role: e.target.value as Role })}
-                        aria-label="الدور"
+                        aria-label={copy.users.role}
                       >
                         {ROLES.map((r) => (
                           <option key={r} value={r}>
@@ -98,9 +99,9 @@ export default function UsersPage() {
                           </option>
                         ))}
                       </Select>
-                      <Button size="sm" variant="outline" onClick={() => setLinking(u)} title="ربط بمخدوم">
+                      <Button size="sm" variant="outline" onClick={() => setLinking(u)} title={copy.users.linkTitle}>
                         <Link2 className="size-4" />
-                        {u.studentId ? "مربوط" : "ربط"}
+                        {u.studentId ? copy.users.linked : copy.users.link}
                       </Button>
                       {!self && (
                         <Button
@@ -108,7 +109,7 @@ export default function UsersPage() {
                           variant="ghost"
                           onClick={() => update.mutate({ id: u.id, status: u.status === "APPROVED" ? "REJECTED" : "APPROVED" })}
                         >
-                          {u.status === "APPROVED" ? "إيقاف" : "تفعيل"}
+                          {u.status === "APPROVED" ? copy.users.disable : copy.users.enable}
                         </Button>
                       )}
                     </div>
@@ -120,7 +121,7 @@ export default function UsersPage() {
         </Card>
       )}
 
-      <Dialog open={Boolean(linking)} onClose={() => setLinking(null)} title="ربط الحساب بمخدوم">
+      <Dialog open={Boolean(linking)} onClose={() => setLinking(null)} title={copy.users.linkDialogTitle}>
         {linking && <LinkStudent user={linking} onDone={() => setLinking(null)} />}
       </Dialog>
     </>
@@ -138,7 +139,7 @@ function LinkStudent({ user, onDone }: { user: User; onDone: () => void }) {
   const link = useMutation({
     mutationFn: (studentId: number | null) => api.put<User>(`/users/${user.id}/student`, { studentId }),
     onSuccess: () => {
-      toast.success("اتحفظ الربط");
+      toast.success(copy.users.linkSaved);
       queryClient.invalidateQueries({ queryKey: ["users"] });
       onDone();
     },
@@ -147,8 +148,8 @@ function LinkStudent({ user, onDone }: { user: User; onDone: () => void }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-stone-500">لما الحساب يتربط بمخدوم، صاحبه يقدر يشوف نقطه وحضوره من صفحة "نقطي".</p>
-      <Input placeholder="دوّر باسم المخدوم" autoFocus value={search} onChange={(e) => setSearch(e.target.value)} />
+      <p className="text-sm text-stone-500">{copy.users.linkHint}</p>
+      <Input placeholder={copy.common.searchByName} autoFocus value={search} onChange={(e) => setSearch(e.target.value)} />
       {students.isPending ? (
         <Spinner className="py-6" />
       ) : (
@@ -163,7 +164,7 @@ function LinkStudent({ user, onDone }: { user: User; onDone: () => void }) {
                 <span className="font-medium">{s.name}</span>
                 <span className="flex items-center gap-2 text-xs text-stone-500">
                   {gradeLabel[s.grade]}
-                  {user.studentId === s.id && <Badge tone="brand">مربوط</Badge>}
+                  {user.studentId === s.id && <Badge tone="brand">{copy.users.linked}</Badge>}
                 </span>
               </button>
             </li>
@@ -172,7 +173,7 @@ function LinkStudent({ user, onDone }: { user: User; onDone: () => void }) {
       )}
       {user.studentId && (
         <Button variant="outline" className="w-full" loading={link.isPending} onClick={() => link.mutate(null)}>
-          فك الربط
+          {copy.users.unlink}
         </Button>
       )}
     </div>

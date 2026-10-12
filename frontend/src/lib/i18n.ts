@@ -33,7 +33,7 @@ const ERRORS: Record<string, string> = {
   GROUP_NAME_TAKEN: "اسم الجروب مستخدم",
   INVALID_MEETING_DATE: "اختار يوم اجتماع فات في السنة الحالية",
   DUPLICATE_ATTENDANCE_ENTRY: "نفس المخدوم متكرر",
-  MEETING_SKIPPED: "الجمعة دي متلغية. رجّعها الأول عشان تسجّل حضور",
+  MEETING_SKIPPED: "الجمعة دي اتعمل لها سكيب، رجّعها الأول",
   AMOUNT_REQUIRED: "اكتب عدد النقط",
   INSUFFICIENT_BALANCE: "الرصيد مش كفاية للخصم",
   BALANCE_ALREADY_ZERO: "الرصيد صفر بالفعل",
@@ -105,7 +105,7 @@ export function transactionNote(t: Transaction): string {
   if (t.attendanceKind && t.attendanceDate) {
     const base = `${kindLabel[t.attendanceKind]} — ${formatDate(t.attendanceDate)}`;
     if (t.type !== "ATTENDANCE_REVERSAL") return base;
-    return t.notes.includes("(meeting skipped)") ? `إلغاء ${base} (الجمعة اتلغت)` : `إلغاء ${base}`;
+    return t.notes.includes("(meeting skipped)") ? `إلغاء ${base} (سكيب)` : `إلغاء ${base}`;
   }
   return t.notes;
 }

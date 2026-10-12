@@ -18,6 +18,7 @@ import { roleLabel } from "@/lib/i18n";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Avatar, Button, Dialog } from "./ui";
+import { copy } from "@/lib/copy";
 
 interface NavItem {
   to: string;
@@ -28,14 +29,14 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { to: "/", label: "الرئيسية", icon: LayoutDashboard, role: "USER" },
-  { to: "/me", label: "نقطي", icon: Star, role: "USER", requiresLink: true },
-  { to: "/attendance", label: "الحضور", icon: CalendarCheck, role: "ADMIN" },
-  { to: "/students", label: "المخدومين", icon: Users, role: "ADMIN" },
-  { to: "/groups", label: "الجروبات", icon: UsersRound, role: "ADMIN" },
-  { to: "/transactions", label: "سجل النقط", icon: History, role: "ADMIN" },
-  { to: "/users", label: "المستخدمين", icon: ShieldCheck, role: "SUPER_ADMIN" },
-  { to: "/settings", label: "الإعدادات", icon: Settings, role: "ADMIN" },
+  { to: "/", label: copy.nav.home, icon: LayoutDashboard, role: "USER" },
+  { to: "/me", label: copy.nav.myPoints, icon: Star, role: "USER", requiresLink: true },
+  { to: "/attendance", label: copy.nav.attendance, icon: CalendarCheck, role: "ADMIN" },
+  { to: "/students", label: copy.nav.students, icon: Users, role: "ADMIN" },
+  { to: "/groups", label: copy.nav.groups, icon: UsersRound, role: "ADMIN" },
+  { to: "/transactions", label: copy.nav.history, icon: History, role: "ADMIN" },
+  { to: "/users", label: copy.nav.users, icon: ShieldCheck, role: "SUPER_ADMIN" },
+  { to: "/settings", label: copy.nav.settings, icon: Settings, role: "ADMIN" },
 ];
 
 const MOBILE_SLOTS = 4;
@@ -64,7 +65,7 @@ export function Layout() {
               <p className="truncate text-sm font-semibold">{user.displayName}</p>
               <p className="text-xs text-stone-500">{roleLabel[user.role]}</p>
             </div>
-            <Button variant="ghost" size="icon" onClick={signOut} aria-label="تسجيل الخروج" title="تسجيل الخروج">
+            <Button variant="ghost" size="icon" onClick={signOut} aria-label={copy.nav.signOut} title={copy.nav.signOut}>
               <LogOut className="size-4" />
             </Button>
           </div>
@@ -107,12 +108,12 @@ export function Layout() {
             className="flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium text-stone-500"
           >
             <MoreHorizontal className="size-5" />
-            المزيد
+            {copy.nav.more}
           </button>
         </div>
       </nav>
 
-      <Dialog open={moreOpen} onClose={() => setMoreOpen(false)} title="المزيد">
+      <Dialog open={moreOpen} onClose={() => setMoreOpen(false)} title={copy.nav.more}>
         <div className="space-y-1" onClick={() => setMoreOpen(false)}>
           {overflow.map((item) => (
             <SideLink key={item.to} item={item} />
@@ -131,7 +132,7 @@ export function Layout() {
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
           >
             <LogOut className="size-5" />
-            تسجيل الخروج
+            {copy.nav.signOut}
           </button>
         </div>
       </Dialog>
@@ -160,14 +161,10 @@ function SideLink({ item }: { item: NavItem }) {
 export function Brand({ compact }: { compact?: boolean }) {
   return (
     <div className={cn("flex items-center gap-2.5", !compact && "px-5 py-6")}>
-      <span className="grid size-9 place-items-center rounded-xl bg-brand-700 text-white shadow-sm">
-        <svg viewBox="0 0 32 32" className="size-5" aria-hidden>
-          <path d="M16 6v20M9 13h14" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" fill="none" />
-        </svg>
-      </span>
-      <div className="leading-tight">
-        <p className="font-bold text-stone-900">خدمة إعدادي</p>
-        {!compact && <p className="text-xs text-stone-500">الحضور والنقط</p>}
+      <img src="/logo.png" alt="" className={cn("shrink-0 drop-shadow-sm", compact ? "size-10" : "size-12")} />
+      <div className="min-w-0 leading-tight">
+        <p className="font-bold text-stone-900">{copy.brand.name}</p>
+        <p className="truncate text-[11px] text-stone-500">{copy.brand.tagline}</p>
       </div>
     </div>
   );
