@@ -33,7 +33,6 @@ public enum ErrorCode {
     CANNOT_CHANGE_OWN_ACCESS(HttpStatus.BAD_REQUEST, "You cannot change your own role or status"),
     CANNOT_CHANGE_OWNER_ACCESS(HttpStatus.BAD_REQUEST, "The owner account's access cannot be changed"),
     STUDENT_ALREADY_LINKED(HttpStatus.CONFLICT, "Student is linked to another account"),
-    ACCOUNT_NOT_LINKED(HttpStatus.NOT_FOUND, "Your account is not linked to a student"),
 
     // Students & groups
     STUDENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Student not found"),

@@ -39,7 +39,7 @@ public class SecurityConfig {
                         // Pending/rejected users can still read their own account status.
                         .requestMatchers("/api/me").authenticated()
                         // Any approved account (USER and up).
-                        .requestMatchers("/api/me/**", "/api/dashboard/**").hasRole("USER")
+                        .requestMatchers("/api/dashboard/**").hasRole("USER")
                         .requestMatchers("/api/users/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/**").hasRole("ADMIN")
                         .anyRequest().denyAll())

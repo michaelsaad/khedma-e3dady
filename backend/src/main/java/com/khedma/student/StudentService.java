@@ -54,11 +54,6 @@ public class StudentService {
         return PageResponse.of(students.findAll(spec, pageable), StudentResponse::of);
     }
 
-    @Transactional(readOnly = true)
-    public StudentResponse get(Long id) {
-        return StudentResponse.of(requireActive(id));
-    }
-
     /** Creating a student that was removed before (same name + grade) restores them with their history. */
     @Transactional
     public StudentResponse create(StudentRequest request) {

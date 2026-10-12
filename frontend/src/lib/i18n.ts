@@ -26,7 +26,6 @@ const ERRORS: Record<string, string> = {
   CANNOT_CHANGE_OWN_ACCESS: "لا يمكنك تغيير صلاحية حسابك",
   CANNOT_CHANGE_OWNER_ACCESS: "لا يمكن تغيير صلاحية حساب المالك",
   STUDENT_ALREADY_LINKED: "المخدوم مربوط بحساب آخر",
-  ACCOUNT_NOT_LINKED: "حسابك مش مربوط بمخدوم لسه",
   STUDENT_NOT_FOUND: "المخدوم غير موجود",
   STUDENT_ALREADY_EXISTS: "فيه مخدوم بنفس الاسم والصف",
   GROUP_NOT_FOUND: "الجروب غير موجود",

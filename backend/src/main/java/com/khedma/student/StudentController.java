@@ -37,11 +37,6 @@ public class StudentController {
         return studentService.search(q, grade, groupId, page, size);
     }
 
-    @GetMapping("/{id}")
-    public StudentResponse get(@PathVariable Long id) {
-        return studentService.get(id);
-    }
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public StudentResponse create(@Valid @RequestBody StudentRequest request) {

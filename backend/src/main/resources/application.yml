@@ -50,6 +50,6 @@ app:
     brevo-api-key: ${BREVO_API_KEY:}
     brevo-base-url: https://api.brevo.com
   # Comma-separated. Verified sign-ins with these emails become SUPER_ADMIN + APPROVED.
-  super-admin-emails: ${SUPER_ADMIN_EMAILS:michealsaad11@gmail.com}
+  super-admin-emails: ${SUPER_ADMIN_EMAILS:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}

@@ -6,18 +6,11 @@ import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.khedma.attendance.AttendanceRepository;
 import com.khedma.common.ApiException;
 import com.khedma.common.ErrorCode;
-import com.khedma.common.PageResponse;
 import com.khedma.config.AppProperties;
-import com.khedma.points.PointsDtos.TransactionResponse;
-import com.khedma.points.PointsService;
 import com.khedma.student.Student;
-import com.khedma.student.StudentDtos.StudentResponse;
 import com.khedma.student.StudentRepository;
-import com.khedma.user.UserDtos.AttendanceDay;
-import com.khedma.user.UserDtos.MyStudentResponse;
 import com.khedma.user.UserDtos.UpdateUserRequest;
 
 @Service
@@ -25,16 +18,11 @@ public class UserService {
 
     private final UserRepository users;
     private final StudentRepository students;
-    private final AttendanceRepository attendance;
-    private final PointsService pointsService;
     private final AppProperties properties;
 
-    public UserService(UserRepository users, StudentRepository students, AttendanceRepository attendance,
-                       PointsService pointsService, AppProperties properties) {
+    public UserService(UserRepository users, StudentRepository students, AppProperties properties) {
         this.users = users;
         this.students = students;
-        this.attendance = attendance;
-        this.pointsService = pointsService;
         this.properties = properties;
     }
 
@@ -78,28 +66,6 @@ public class UserService {
             target.setStudent(student);
         }
         return UserResponse.of(target);
-    }
-
-    @Transactional(readOnly = true)
-    public MyStudentResponse myStudent(Long userId) {
-        Student student = linkedStudent(userId);
-        List<AttendanceDay> days = attendance.findAllByStudentIdOrderByMeetingDateDesc(student.getId()).stream()
-                .map(a -> new AttendanceDay(a.getMeetingDate(), a.isService(), a.isMass()))
-                .toList();
-        return new MyStudentResponse(StudentResponse.of(student), days);
-    }
-
-    @Transactional(readOnly = true)
-    public PageResponse<TransactionResponse> myTransactions(Long userId, int page, int size) {
-        return pointsService.forStudent(linkedStudent(userId).getId(), page, size);
-    }
-
-    private Student linkedStudent(Long userId) {
-        Student student = require(userId).getStudent();
-        if (student == null || !student.isActive()) {
-            throw new ApiException(ErrorCode.ACCOUNT_NOT_LINKED);
-        }
-        return student;
     }
 
     private AppUser require(Long id) {

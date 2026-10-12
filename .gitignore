@@ -5,8 +5,6 @@ backend/target/
 
 # Frontend
 frontend/node_modules/
-frontend/.next/
-frontend/out/
 
 # Env / secrets
 .env
@@ -23,8 +21,3 @@ Thumbs.db
 # Frontend build
 frontend/dist/
 frontend/*.tsbuildinfo
-
-# Migration secrets
-scripts/migrate-old-data/.env.migrate
-scripts/migrate-old-data/node_modules/
-scripts/migrate-old-data/old data/

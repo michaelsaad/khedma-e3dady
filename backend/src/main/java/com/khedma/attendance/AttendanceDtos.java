@@ -5,8 +5,6 @@ import java.util.List;
 
 import com.khedma.student.Grade;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -18,10 +16,6 @@ public final class AttendanceDtos {
             @NotNull Long studentId,
             @NotNull Boolean service,
             @NotNull Boolean mass) {}
-
-    public record SaveAttendanceRequest(
-            @NotEmpty @Size(max = 500)
-            List<@Valid @NotNull AttendanceEntry> entries) {}
 
     /** One row per active student for the requested meeting (absent if never recorded). */
     public record AttendanceRow(

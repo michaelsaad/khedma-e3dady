@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.khedma.attendance.AttendanceDtos.AttendanceEntry;
 import com.khedma.attendance.AttendanceDtos.MeetingAttendance;
 import com.khedma.attendance.AttendanceDtos.MeetingsResponse;
-import com.khedma.attendance.AttendanceDtos.SaveAttendanceRequest;
 import com.khedma.attendance.AttendanceDtos.SaveAttendanceResult;
 import com.khedma.attendance.AttendanceDtos.SkipMeetingRequest;
 import com.khedma.attendance.AttendanceDtos.UpdateStudentAttendanceRequest;
@@ -45,15 +44,7 @@ public class AttendanceController {
         return attendanceService.forMeeting(date);
     }
 
-    /** Batch save; also awards / reverses attendance points automatically. */
-    @PutMapping("/{date}")
-    public SaveAttendanceResult save(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-                                     @Valid @RequestBody SaveAttendanceRequest request,
-                                     @AuthenticationPrincipal AuthUser actor) {
-        return attendanceService.save(date, request.entries(), actor.id());
-    }
-
-    /** Saves one student immediately (same point rules as the batch save). */
+    /** Saves one student's attendance immediately; also awards / reverses points. */
     @PutMapping("/{date}/students/{studentId}")
     public SaveAttendanceResult saveOne(@PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
                                         @PathVariable Long studentId,
