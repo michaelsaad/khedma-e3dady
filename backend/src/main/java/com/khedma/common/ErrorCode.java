@@ -23,6 +23,7 @@ public enum ErrorCode {
     VERIFICATION_CODE_EXPIRED(HttpStatus.BAD_REQUEST, "Verification code has expired"),
     TOO_MANY_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "Too many attempts, request a new code"),
     RESEND_TOO_SOON(HttpStatus.TOO_MANY_REQUESTS, "Please wait before requesting another code"),
+    EMAIL_SEND_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "The verification email could not be sent"),
     GOOGLE_LOGIN_DISABLED(HttpStatus.SERVICE_UNAVAILABLE, "Google sign-in is not configured"),
     GOOGLE_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "Google token could not be verified"),
     GOOGLE_EMAIL_NOT_VERIFIED(HttpStatus.UNAUTHORIZED, "Google email is not verified"),

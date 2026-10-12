@@ -18,6 +18,7 @@ const ERRORS: Record<string, string> = {
   VERIFICATION_CODE_EXPIRED: "الكود انتهى، اطلب كود جديد",
   TOO_MANY_ATTEMPTS: "محاولات كتير، اطلب كود جديد",
   RESEND_TOO_SOON: "استنى دقيقة قبل ما تطلب كود جديد",
+  EMAIL_SEND_FAILED: "معرفناش نبعت كود التأكيد دلوقتي، حاول تاني بعد شوية",
   GOOGLE_LOGIN_DISABLED: "الدخول بجوجل غير مفعّل حاليًا",
   GOOGLE_TOKEN_INVALID: "تعذّر التحقق من حساب جوجل",
   GOOGLE_EMAIL_NOT_VERIFIED: "إيميل جوجل غير مؤكد",

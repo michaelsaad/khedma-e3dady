@@ -5,10 +5,13 @@ import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
+import com.khedma.common.ApiException;
+import com.khedma.common.ErrorCode;
 import com.khedma.config.AppProperties;
 
 /**
@@ -45,6 +48,11 @@ public class EmailSender {
 
                 It expires in %d minutes. If you did not create an account, you can ignore this email.
                 """.formatted(name, code, validFor.toMinutes()));
-        sender.send(message);
+        try {
+            sender.send(message);
+        } catch (MailException ex) {
+            log.error("Sending verification email to {} failed: {}", to, ex.getMessage());
+            throw new ApiException(ErrorCode.EMAIL_SEND_FAILED);
+        }
     }
 }
