@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Settings2, Star, X } from "lucide-react";
+import { Settings2, Star, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -36,11 +36,9 @@ export function ExtraPointsDialog({ date, target, onClose }: { date: string; tar
     enabled: Boolean(target),
   });
   const [pending, setPending] = useState<PointReason | null>(null);
-  const [creating, setCreating] = useState(false);
 
   const close = () => {
     setPending(null);
-    setCreating(false);
     onClose();
   };
 
@@ -75,7 +73,6 @@ export function ExtraPointsDialog({ date, target, onClose }: { date: string; tar
       refresh();
       // Stay open so several bonuses can be given in a row.
       setPending(null);
-      setCreating(false);
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -120,9 +117,7 @@ export function ExtraPointsDialog({ date, target, onClose }: { date: string; tar
             </div>
           )}
 
-          {creating ? (
-            <NewReasonForm loading={grant.isPending} onCancel={() => setCreating(false)} onSubmit={give} />
-          ) : pending ? (
+          {pending ? (
             <AmountForm reason={pending} loading={grant.isPending} onCancel={() => setPending(null)} onSubmit={(amount) => give({ label: pending.label, amount })} />
           ) : (
             <>
@@ -150,16 +145,12 @@ export function ExtraPointsDialog({ date, target, onClose }: { date: string; tar
                 <p className="py-2 text-center text-sm text-stone-500">{copy.attendance.extraNoReasons}</p>
               )}
 
-              <div className="flex items-center justify-between gap-2">
-                <Button variant="secondary" onClick={() => setCreating(true)}>
-                  <Plus className="size-4" />
-                  {copy.attendance.extraNewReason}
-                </Button>
-                <Link to="/settings" className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-800">
-                  <Settings2 className="size-4" />
-                  {copy.attendance.extraEditReasons}
-                </Link>
-              </div>
+              <QuickBonusForm loading={grant.isPending} savedLabels={new Set((reasons.data ?? []).map((r) => r.label))} onSubmit={give} />
+
+              <Link to="/settings" className="flex w-fit items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-800">
+                <Settings2 className="size-4" />
+                {copy.attendance.extraEditReasons}
+              </Link>
             </>
           )}
         </div>
@@ -193,36 +184,56 @@ function AmountForm({ reason, loading, onCancel, onSubmit }: { reason: PointReas
   );
 }
 
-function NewReasonForm({ loading, onCancel, onSubmit }: { loading: boolean; onCancel: () => void; onSubmit: (grant: Grant) => void }) {
+/** Always-open one-off bonus: optional reason + points. The reason is only saved to the list if asked. */
+function QuickBonusForm({ loading, savedLabels, onSubmit }: { loading: boolean; savedLabels: Set<string>; onSubmit: (grant: Grant) => void }) {
   const [label, setLabel] = useState("");
   const [amount, setAmount] = useState("");
-  const [save, setSave] = useState(true);
+  const [save, setSave] = useState(false);
+  const trimmed = label.trim();
+  const canSave = trimmed !== "" && !savedLabels.has(trimmed);
   return (
     <form
-      className="space-y-4"
+      className="space-y-3 rounded-2xl border border-stone-200 p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ label: label.trim(), amount: Number(amount), saveReason: save });
+        onSubmit({ label: trimmed || copy.attendance.extraDefaultReason, amount: Number(amount), saveReason: canSave && save });
+        setLabel("");
+        setAmount("");
+        setSave(false);
       }}
     >
-      <Field label={copy.points.reason}>
-        <Input required maxLength={200} autoFocus placeholder={copy.attendance.extraReasonPlaceholder} value={label} onChange={(e) => setLabel(e.target.value)} />
-      </Field>
-      <Field label={copy.points.amount}>
-        <Input type="number" inputMode="numeric" min={1} max={10000} required value={amount} onChange={(e) => setAmount(e.target.value)} />
-      </Field>
-      <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
-        <input type="checkbox" className="size-4 accent-brand-700" checked={save} onChange={(e) => setSave(e.target.checked)} />
-        {copy.attendance.extraSaveReason}
-      </label>
+      <p className="text-sm font-semibold text-stone-700">{copy.attendance.extraOneOffTitle}</p>
       <div className="flex gap-2">
-        <Button type="submit" className="flex-1" loading={loading}>
-          {copy.attendance.extraSubmit}
-        </Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          {copy.common.cancel}
-        </Button>
+        <Input
+          maxLength={200}
+          className="min-w-0 flex-[3_1_0]"
+          placeholder={copy.attendance.extraReasonOptional}
+          aria-label={copy.attendance.extraReasonOptional}
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+        />
+        <Input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={10000}
+          required
+          className="min-w-0 flex-[2_1_0]"
+          placeholder={copy.points.amount}
+          aria-label={copy.points.amount}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+        />
       </div>
+      {canSave && (
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
+          <input type="checkbox" className="size-4 accent-brand-700" checked={save} onChange={(e) => setSave(e.target.checked)} />
+          {copy.attendance.extraSaveReason}
+        </label>
+      )}
+      <Button type="submit" className="w-full" loading={loading}>
+        {copy.attendance.extraSubmit}
+      </Button>
     </form>
   );
 }
