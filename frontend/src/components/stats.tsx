@@ -39,7 +39,7 @@ export function StatTile({
   );
 }
 
-export function RateBar({ value, tone }: { value: number; tone: "brand" | "blue" }) {
+function RateBar({ value, tone }: { value: number; tone: "brand" | "blue" }) {
   return (
     <div className="h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
       <div

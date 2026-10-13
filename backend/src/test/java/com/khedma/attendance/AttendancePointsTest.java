@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.khedma.TestcontainersConfig;
-import com.khedma.attendance.AttendanceDtos.AttendanceEntry;
 import com.khedma.attendance.AttendanceDtos.SaveAttendanceResult;
 import com.khedma.common.ApiException;
 import com.khedma.common.ErrorCode;
@@ -141,12 +140,12 @@ class AttendancePointsTest {
         // Imported-style history: marking an old meeting gives no points.
         LocalDate oct2 = LocalDate.of(2026, 10, 2);
         SaveAttendanceResult imported = attendanceService.save(oct2,
-                List.of(new AttendanceEntry(student.getId(), true, true)), adminId);
+                student.getId(), true, true, adminId);
         assertThat(imported.netPoints()).isZero();
         assertThat(balance()).isEqualTo(7);
 
         // Un-marking an old meeting that had no award doesn't take points away...
-        attendanceService.save(oct2, List.of(new AttendanceEntry(student.getId(), false, false)), adminId);
+        attendanceService.save(oct2, student.getId(), false, false, adminId);
         assertThat(balance()).isEqualTo(7);
         // ...but an award that really happened is still reversed.
         save(false, false);
@@ -156,10 +155,10 @@ class AttendancePointsTest {
     @Test
     void rejectsNonMeetingAndFutureDates() {
         assertThatThrownBy(() -> attendanceService.save(LocalDate.of(2026, 10, 8),
-                List.of(new AttendanceEntry(student.getId(), true, true)), adminId))
+                student.getId(), true, true, adminId))
                 .isInstanceOf(ApiException.class); // Thursday
         assertThatThrownBy(() -> attendanceService.save(LocalDate.of(2026, 10, 16),
-                List.of(new AttendanceEntry(student.getId(), true, true)), adminId))
+                student.getId(), true, true, adminId))
                 .isInstanceOf(ApiException.class); // future Friday
     }
 
@@ -286,7 +285,7 @@ class AttendancePointsTest {
     }
 
     private SaveAttendanceResult save(boolean service, boolean mass) {
-        return attendanceService.save(OCT_9, List.of(new AttendanceEntry(student.getId(), service, mass)), adminId);
+        return attendanceService.save(OCT_9, student.getId(), service, mass, adminId);
     }
 
     private int balance() {

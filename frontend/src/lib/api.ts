@@ -1,7 +1,7 @@
 const BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8080";
 const TOKEN_KEY = "khedma.token";
 
-export interface FieldError {
+interface FieldError {
   field: string;
   code: string;
   message: string;

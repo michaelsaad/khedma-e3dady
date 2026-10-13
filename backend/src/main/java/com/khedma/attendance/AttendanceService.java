@@ -4,7 +4,6 @@ import java.text.Collator;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -15,7 +14,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.khedma.attendance.AttendanceDtos.AttendanceEntry;
 import com.khedma.attendance.AttendanceDtos.AttendanceRow;
 import com.khedma.attendance.AttendanceDtos.MeetingAttendance;
 import com.khedma.attendance.AttendanceDtos.MeetingsResponse;
@@ -107,46 +105,36 @@ public class AttendanceService {
     }
 
     /**
-     * Saves attendance for one meeting and, in the same transaction, distributes points:
+     * Saves one student's attendance for a meeting and, in the same transaction, distributes points:
      * newly marked service/mass -> award; un-marked -> reverse the earlier award.
      */
     @Transactional
-    public SaveAttendanceResult save(LocalDate date, List<AttendanceEntry> entries, Long actorId) {
+    public SaveAttendanceResult save(LocalDate date, Long studentId, boolean service, boolean mass, Long actorId) {
         AppSettings settings = settingsService.current();
         calendar.requireValidMeeting(date, settings);
         if (skippedMeetings.existsById(date)) {
             throw new ApiException(ErrorCode.MEETING_SKIPPED);
         }
-        if (new HashSet<>(entries.stream().map(AttendanceEntry::studentId).toList()).size() != entries.size()) {
-            throw new ApiException(ErrorCode.DUPLICATE_ATTENDANCE_ENTRY);
-        }
+        Student student = students.findByIdForUpdate(studentId)
+                .filter(Student::isActive)
+                .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
 
-        // Lock students in id order so concurrent saves can't deadlock.
-        List<AttendanceEntry> ordered = entries.stream()
-                .sorted(Comparator.comparing(AttendanceEntry::studentId))
-                .toList();
+        Attendance attendance = attendanceRepository.findByStudentIdAndMeetingDate(studentId, date)
+                .orElseGet(() -> {
+                    Attendance created = new Attendance();
+                    created.setStudent(student);
+                    created.setMeetingDate(date);
+                    return created;
+                });
+        attendance.setService(service);
+        attendance.setMass(mass);
+        attendance.setUpdatedBy(users.getReferenceById(actorId));
+        attendance.setUpdatedAt(clock.instant());
+        attendance = attendanceRepository.save(attendance);
 
         PointsTally tally = new PointsTally();
-        for (AttendanceEntry entry : ordered) {
-            Student student = students.findByIdForUpdate(entry.studentId())
-                    .filter(Student::isActive)
-                    .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
-
-            Attendance attendance = attendanceRepository.findByStudentIdAndMeetingDate(student.getId(), date)
-                    .orElseGet(() -> {
-                        Attendance created = new Attendance();
-                        created.setStudent(student);
-                        created.setMeetingDate(date);
-                        return created;
-                    });
-            attendance.setService(entry.service());
-            attendance.setMass(entry.mass());
-            attendance.setUpdatedBy(users.getReferenceById(actorId));
-            attendance.setUpdatedAt(clock.instant());
-            attendance = attendanceRepository.save(attendance);
-            syncPoints(student, attendance, settings, actorId, false, tally);
-        }
-        return new SaveAttendanceResult(date, ordered.size(), tally.awards, tally.reversals, tally.net);
+        syncPoints(student, attendance, settings, actorId, false, tally);
+        return new SaveAttendanceResult(date, 1, tally.awards, tally.reversals, tally.net);
     }
 
     /**

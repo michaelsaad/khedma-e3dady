@@ -9,7 +9,7 @@ import { errorMessage, formatSigned } from "@/lib/i18n";
 import type { PointReason, Transaction } from "@/lib/types";
 import { Button, Dialog, Field, Input, Spinner } from "./ui";
 
-export interface ExtraPointsTarget {
+interface ExtraPointsTarget {
   studentId: number;
   studentName: string;
   extraPoints: number;

@@ -31,7 +31,6 @@ const ERRORS: Record<string, string> = {
   GROUP_NOT_FOUND: "الجروب غير موجود",
   GROUP_NAME_TAKEN: "اسم الجروب مستخدم",
   INVALID_MEETING_DATE: "اختار يوم اجتماع فات في السنة الحالية",
-  DUPLICATE_ATTENDANCE_ENTRY: "نفس المخدوم متكرر",
   MEETING_SKIPPED: "الجمعة دي اتعمل لها سكيب، رجّعها الأول",
   AMOUNT_REQUIRED: "اكتب عدد النقط",
   INSUFFICIENT_BALANCE: "الرصيد مش كفاية للخصم",
@@ -80,7 +79,7 @@ export const statusLabel: Record<UserStatus, string> = {
   REJECTED: "مرفوض",
 };
 
-export const kindLabel: Record<AttendanceKind, string> = { SERVICE: "حضور خدمة", MASS: "حضور قداس" };
+const kindLabel: Record<AttendanceKind, string> = { SERVICE: "حضور خدمة", MASS: "حضور قداس" };
 
 export const typeLabel: Record<TransactionType, string> = {
   MANUAL_ADD: "إضافة",

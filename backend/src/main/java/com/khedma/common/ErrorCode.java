@@ -42,7 +42,6 @@ public enum ErrorCode {
 
     // Attendance
     INVALID_MEETING_DATE(HttpStatus.BAD_REQUEST, "Date is not a past meeting day in the current season"),
-    DUPLICATE_ATTENDANCE_ENTRY(HttpStatus.BAD_REQUEST, "The same student appears more than once"),
     MEETING_SKIPPED(HttpStatus.CONFLICT, "This meeting was skipped; restore it before recording attendance"),
 
     // Points

@@ -1,7 +1,6 @@
 package com.khedma.attendance;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.khedma.attendance.AttendanceDtos.AttendanceEntry;
 import com.khedma.attendance.AttendanceDtos.MeetingAttendance;
 import com.khedma.attendance.AttendanceDtos.MeetingsResponse;
 import com.khedma.attendance.AttendanceDtos.SaveAttendanceResult;
@@ -50,8 +48,7 @@ public class AttendanceController {
                                         @PathVariable Long studentId,
                                         @Valid @RequestBody UpdateStudentAttendanceRequest request,
                                         @AuthenticationPrincipal AuthUser actor) {
-        return attendanceService.save(date,
-                List.of(new AttendanceEntry(studentId, request.service(), request.mass())), actor.id());
+        return attendanceService.save(date, studentId, request.service(), request.mass(), actor.id());
     }
 
     /** Marks the meeting as not held: reverses its attendance points and leaves it out of statistics. */

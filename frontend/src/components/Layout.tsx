@@ -159,7 +159,7 @@ function SideLink({ item }: { item: NavItem }) {
 }
 
 /** The logo, pre-scaled per size so the detailed artwork stays sharp on high-DPI phones. */
-export function Logo({ className, sizes }: { className?: string; sizes: string }) {
+function Logo({ className, sizes }: { className?: string; sizes: string }) {
   return (
     <img
       src="/logo-128.png"

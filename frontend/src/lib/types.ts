@@ -152,7 +152,7 @@ export interface StudentCard {
   massRate: number;
 }
 
-export interface GroupStanding {
+interface GroupStanding {
   id: number;
   name: string;
   points: number;
