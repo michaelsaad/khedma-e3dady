@@ -33,6 +33,7 @@ public enum ErrorCode {
     CANNOT_CHANGE_OWN_ACCESS(HttpStatus.BAD_REQUEST, "You cannot change your own role or status"),
     CANNOT_CHANGE_OWNER_ACCESS(HttpStatus.BAD_REQUEST, "The owner account's access cannot be changed"),
     STUDENT_ALREADY_LINKED(HttpStatus.CONFLICT, "Student is linked to another account"),
+    ACCOUNT_NOT_LINKED(HttpStatus.NOT_FOUND, "This account is not linked to a student yet"),
 
     // Students & groups
     STUDENT_NOT_FOUND(HttpStatus.NOT_FOUND, "Student not found"),
@@ -52,6 +53,11 @@ public enum ErrorCode {
     TRANSACTION_NOT_UNDOABLE(HttpStatus.CONFLICT, "Only meeting bonuses that are not undone yet can be undone"),
     REASON_NOT_FOUND(HttpStatus.NOT_FOUND, "Reason not found"),
     REASON_ALREADY_EXISTS(HttpStatus.CONFLICT, "A reason with this text already exists"),
+
+    // Follow-ups
+    FOLLOWUP_NOT_FOUND(HttpStatus.NOT_FOUND, "Follow-up not found"),
+    FOLLOWUP_TYPE_NOT_FOUND(HttpStatus.NOT_FOUND, "Follow-up type not found"),
+    FOLLOWUP_TYPE_ALREADY_EXISTS(HttpStatus.CONFLICT, "A follow-up type with this name already exists"),
 
     // Settings
     INVALID_SEASON_RANGE(HttpStatus.BAD_REQUEST, "Season end must be after season start");

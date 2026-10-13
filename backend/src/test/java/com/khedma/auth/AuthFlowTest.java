@@ -79,7 +79,7 @@ class AuthFlowTest {
     @Test
     void ownerIsPromotedOnlyAfterVerifyingTheirEmail() throws Exception {
         register("owner@test.local");
-        assertThat(users.findByEmail("owner@test.local").orElseThrow().getRole()).isEqualTo(Role.USER);
+        assertThat(users.findByEmail("owner@test.local").orElseThrow().getRole()).isEqualTo(Role.MAKHDOUM);
 
         verify("owner@test.local", emails.lastCode("owner@test.local"))
                 .andExpect(jsonPath("$.user.role").value("SUPER_ADMIN"))
@@ -93,13 +93,13 @@ class AuthFlowTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
 
-        setAccess("viewer@test.local", Role.USER, UserStatus.APPROVED);
+        setAccess("viewer@test.local", Role.SERVANT, UserStatus.APPROVED);
         mvc.perform(get("/api/dashboard").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meetingsHeld").value(4));
         mvc.perform(get("/api/dashboard/students").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
-        // Regular users can't manage data.
+        // Servants can read but not manage data.
         mvc.perform(get("/api/students").header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }

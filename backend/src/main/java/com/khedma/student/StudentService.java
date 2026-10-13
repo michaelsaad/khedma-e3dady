@@ -17,6 +17,7 @@ import com.khedma.group.GroupRepository;
 import com.khedma.group.StudentGroup;
 import com.khedma.student.StudentDtos.StudentRequest;
 import com.khedma.student.StudentDtos.StudentResponse;
+import com.khedma.user.UserRepository;
 
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -28,10 +29,12 @@ public class StudentService {
 
     private final StudentRepository students;
     private final GroupRepository groups;
+    private final UserRepository users;
 
-    public StudentService(StudentRepository students, GroupRepository groups) {
+    public StudentService(StudentRepository students, GroupRepository groups, UserRepository users) {
         this.students = students;
         this.groups = groups;
+        this.users = users;
     }
 
     @Transactional(readOnly = true)
@@ -93,6 +96,8 @@ public class StudentService {
         Student student = requireActive(id);
         student.setActive(false);
         student.setGroup(null);
+        // A removed student can't be the "own page" of an account any more.
+        users.findByStudentId(id).ifPresent(account -> account.setStudent(null));
     }
 
     private Student requireActive(Long id) {

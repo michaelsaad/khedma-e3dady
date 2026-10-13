@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -38,8 +39,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/health").permitAll()
                         // Pending/rejected users can still read their own account status.
                         .requestMatchers("/api/me").authenticated()
-                        // Any approved account (USER and up).
-                        .requestMatchers("/api/dashboard/**").hasRole("USER")
+                        // A MAKHDOUM (or anyone above) reads only their own linked student.
+                        .requestMatchers("/api/me/student").hasAnyRole("MAKHDOUM", "SERVANT")
+                        // Servants and up: read-only view of everyone.
+                        .requestMatchers("/api/dashboard/**").hasRole("SERVANT")
+                        // Follow-up reports: servants write and read their own; handling them and editing types is ADMIN (the default below).
+                        .requestMatchers(HttpMethod.POST, "/api/followups").hasRole("SERVANT")
+                        .requestMatchers(HttpMethod.GET, "/api/followups", "/api/followup-types").hasRole("SERVANT")
                         .requestMatchers("/api/users/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/**").hasRole("ADMIN")
                         .anyRequest().denyAll())
