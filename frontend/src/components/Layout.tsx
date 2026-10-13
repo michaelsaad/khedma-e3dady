@@ -158,10 +158,35 @@ function SideLink({ item }: { item: NavItem }) {
   );
 }
 
-export function Brand({ compact }: { compact?: boolean }) {
+/** The logo, pre-scaled per size so the detailed artwork stays sharp on high-DPI phones. */
+export function Logo({ className, sizes }: { className?: string; sizes: string }) {
+  return (
+    <img
+      src="/logo-128.png"
+      srcSet="/logo-96.png 96w, /logo-128.png 128w, /icon-192.png 192w, /logo.png 512w"
+      sizes={sizes}
+      alt=""
+      decoding="async"
+      className={cn("shrink-0 drop-shadow-sm", className)}
+    />
+  );
+}
+
+export function Brand({ compact, large }: { compact?: boolean; large?: boolean }) {
+  if (large) {
+    return (
+      <div className="flex flex-col items-center gap-3 text-center">
+        <Logo sizes="96px" className="size-24" />
+        <div className="leading-tight">
+          <p className="text-lg font-bold text-stone-900">{copy.brand.name}</p>
+          <p className="text-xs text-stone-500">{copy.brand.tagline}</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className={cn("flex items-center gap-2.5", !compact && "px-5 py-6")}>
-      <img src="/logo.png" alt="" className={cn("shrink-0 drop-shadow-sm", compact ? "size-10" : "size-12")} />
+      <Logo sizes={compact ? "40px" : "48px"} className={compact ? "size-10" : "size-12"} />
       <div className="min-w-0 leading-tight">
         <p className="font-bold text-stone-900">{copy.brand.name}</p>
         <p className="truncate text-[11px] text-stone-500">{copy.brand.tagline}</p>

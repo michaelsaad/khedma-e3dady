@@ -29,8 +29,8 @@ export default function LoginPage() {
     <div className="grid min-h-dvh lg:grid-cols-2">
       <div className="flex flex-col justify-center px-5 py-10 sm:px-10">
         <div className="mx-auto w-full max-w-sm">
-          <div className="mb-8 [&>div]:px-0 [&>div]:py-0">
-            <Brand />
+          <div className="mb-8">
+            <Brand large />
           </div>
 
           {forgotEmail !== null ? (
@@ -76,6 +76,7 @@ export default function LoginPage() {
       <div className="relative hidden overflow-hidden bg-brand-800 lg:block">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.14),transparent_55%)]" />
         <div className="relative flex h-full flex-col justify-end p-12 text-white">
+          <img src="/logo.png" alt="" decoding="async" className="mt-8 mb-auto size-72 self-center drop-shadow-xl xl:size-80" />
           <p className="text-3xl leading-snug font-bold">{copy.login.heroTitle}</p>
           <p className="mt-3 max-w-md text-brand-100">
             {copy.login.heroText}
