@@ -84,6 +84,7 @@ public class AttendanceService {
                             student.getName(),
                             student.getGrade(),
                             student.getGroup() == null ? null : student.getGroup().getId(),
+                            student.getGroup() == null ? null : student.getGroup().getName(),
                             a != null && a.isService(),
                             a != null && a.isMass(),
                             a != null,

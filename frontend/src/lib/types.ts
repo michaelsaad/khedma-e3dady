@@ -104,6 +104,7 @@ export interface AttendanceRow {
   studentName: string;
   grade: Grade;
   groupId: number | null;
+  groupName: string | null;
   service: boolean;
   mass: boolean;
   recorded: boolean;

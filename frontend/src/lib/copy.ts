@@ -166,6 +166,7 @@ export const copy = {
     restore: "رجّعها",
     restored: (points: number) => (points > 0 ? `رجعت الجمعة (+${n(points)} نقطة)` : "رجعت الجمعة"),
     // Extra points from the attendance list
+    extraChip: "نقط",
     extraButton: (name: string) => `نقط زيادة لـ ${name}`,
     extraTitle: (name: string) => `نقط زيادة لـ ${name}`,
     extraSoFar: (points: number) => `خد النهارده ${formatSigned(points)} نقطة زيادة`,

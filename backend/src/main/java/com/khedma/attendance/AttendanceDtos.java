@@ -18,6 +18,7 @@ public final class AttendanceDtos {
             String studentName,
             Grade grade,
             Long groupId,
+            String groupName,
             boolean service,
             boolean mass,
             boolean recorded,

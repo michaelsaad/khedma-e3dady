@@ -161,8 +161,12 @@ function MeetingView({
                 {rows.map((row) => (
                   <li key={row.studentId} className="flex items-center gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{row.studentName}</p>
-                      <Badge className="mt-0.5">{gradeLabel[row.grade]}</Badge>
+                      <p className="leading-snug font-medium break-words">{row.studentName}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                        <Badge>{gradeLabel[row.grade]}</Badge>
+                        {row.groupName && <Badge tone="blue">{row.groupName}</Badge>}
+                        <ExtraChip row={row} onClick={() => setExtraFor(row)} />
+                      </div>
                     </div>
                     <ToggleChip
                       label={copy.common.service}
@@ -178,7 +182,6 @@ function MeetingView({
                       disabled={saving.has(row.studentId)}
                       onClick={() => toggle(row, "mass")}
                     />
-                    <ExtraChip row={row} onClick={() => setExtraFor(row)} />
                   </li>
                 ))}
               </ul>
@@ -267,21 +270,13 @@ function ExtraChip({ row, onClick }: { row: AttendanceRow; onClick: () => void }
       onClick={onClick}
       aria-label={copy.attendance.extraButton(row.studentName)}
       className={cn(
-        "flex h-10 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl border px-1.5 text-sm font-semibold transition-all active:scale-95",
-        has ? "border-brand-200 bg-brand-50 text-brand-800" : "border-stone-200 bg-white text-stone-400 hover:border-brand-300 hover:text-brand-700",
+        // Small pill under the name; the padding keeps a comfortable tap area.
+        "-my-1 flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs font-semibold transition-all active:scale-95",
+        has ? "border-brand-200 bg-brand-50 text-brand-800" : "border-dashed border-stone-300 text-stone-500 hover:border-brand-300 hover:text-brand-700",
       )}
     >
-      {has ? (
-        <>
-          <Star className="size-3.5 shrink-0 fill-current" />
-          <span className="tabular">{formatNumber(row.extraPoints)}</span>
-        </>
-      ) : (
-        <>
-          <Plus className="size-3.5" />
-          <Star className="size-4" />
-        </>
-      )}
+      {has ? <Star className="size-3.5 fill-current" /> : <Plus className="size-3.5" />}
+      {has ? <span className="tabular">{formatNumber(row.extraPoints)}</span> : copy.attendance.extraChip}
     </button>
   );
 }
