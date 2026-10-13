@@ -1,31 +1,21 @@
-<p align="center">
-  <img src="frontend/public/logo.png" alt="Khedma E3dady logo" width="120" />
-</p>
-
-<h1 align="center">Khedma E3dady</h1>
+<h1 align="center">Attendance &amp; Rewards Platform</h1>
 
 <p align="center">
-  Attendance and points tracking for a church middle-school (إعدادي) service.<br />
+  Attendance and points tracking for a weekly youth program.<br />
   Mobile-first, Arabic (RTL) web app with a Spring Boot API.
 </p>
 
 ---
 
-Every Friday, servants mark who attended **service** and **mass**. The app saves each tap instantly
-and awards points automatically, so the points table is always up to date and kids can see their rank.
-
-<p align="center">
-  <img src="docs/screenshots/dashboard.jpg" alt="Dashboard" width="32%" />
-  <img src="docs/screenshots/attendance.jpg" alt="Attendance" width="32%" />
-  <img src="docs/screenshots/student.jpg" alt="Student profile" width="32%" />
-</p>
+At every weekly meeting, organizers mark who attended each of the meeting's **two sessions**. The app saves each tap
+instantly and awards points automatically, so the points table is always up to date and members can see their rank.
 
 ## Features
 
-- **One-tap attendance**: toggle service / mass per student; each change saves immediately.
+- **One-tap attendance**: toggle each of the two sessions per member; each change saves immediately.
 - **Automatic points**: marking attendance awards points (configurable per kind), and unmarking reverses
   exactly what was awarded. Nothing is ever double-counted.
-- **Skip a Friday**: mark a meeting as not held; its points are reversed and it's excluded from all stats,
+- **Skip a week**: mark a meeting as not held; its points are reversed and it's excluded from all stats,
   and you can restore it later.
 - **Points ledger**: every change (automatic or manual add / deduct / reset) is an immutable transaction with
   a reason, author and running balance. Frequent reasons can be saved and picked in one tap.
@@ -62,7 +52,7 @@ and awards points automatically, so the points table is always up to date and ki
 
 Points live in a single ledger table; balances on students and groups are a cached sum of it.
 
-- Saving attendance reconciles each kind (service, mass) with the ledger:
+- Saving attendance reconciles each session kind with the ledger:
   marked and not yet awarded → **award**; unmarked → **reverse** the earlier award.
 - Reversals always cancel the amount originally awarded, even if the settings changed since.
 - Meetings before the configured *points start date* never award points, which keeps imported history
@@ -153,7 +143,7 @@ that the web app translates to Arabic.
 ---
 
 <p align="center">
-  Made for the Saint Moses the Strong (القديس الأنبا موسى القوي) class.
+  Built by <a href="https://github.com/michaelsaad">Michael Saad</a>.
 </p>
 
 <p align="center">
