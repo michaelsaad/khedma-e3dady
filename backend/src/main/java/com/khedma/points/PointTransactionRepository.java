@@ -32,6 +32,19 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
             """)
     List<Object[]> sumManualPointsByStudent(LocalDate date);
 
+    /** Bonuses given to a student on a meeting day that have not been undone, oldest first. */
+    @Query("""
+            select t from PointTransaction t
+            where t.student.id = :studentId
+              and t.meetingDate = :date
+              and t.type = com.khedma.points.TransactionType.MANUAL_ADD
+              and not exists (select r.id from PointTransaction r where r.reverses = t)
+            order by t.id
+            """)
+    List<PointTransaction> findActiveMeetingBonuses(Long studentId, LocalDate date);
+
+    boolean existsByReversesId(Long reversesId);
+
     @EntityGraph(attributePaths = {"student", "group", "createdBy", "attendance"})
     Page<PointTransaction> findAllByStudentId(Long studentId, Pageable pageable);
 

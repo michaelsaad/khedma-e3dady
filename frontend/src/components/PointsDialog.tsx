@@ -49,7 +49,9 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
   const [saveReason, setSaveReason] = useState(false);
-  const reasons = useQuery({ queryKey: ["point-reasons"], queryFn: () => api.get<PointReason[]>("/point-reasons") });
+  // Saved reasons are for students only; group points are typed freely.
+  const forStudent = target.type === "students";
+  const reasons = useQuery({ queryKey: ["point-reasons"], queryFn: () => api.get<PointReason[]>("/point-reasons"), enabled: forStudent });
 
   const trimmed = notes.trim();
   const isSavedReason = reasons.data?.some((r) => r.label === trimmed) ?? false;
@@ -66,7 +68,7 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
         amount: kind === "RESET" ? null : Number(amount),
         notes,
       });
-      if (saveReason && trimmed && !isSavedReason) {
+      if (forStudent && saveReason && trimmed && !isSavedReason) {
         // Best effort: the transaction already succeeded, so a failed save shouldn't block it.
         await api
           .post("/point-reasons", { label: trimmed, defaultAmount: kind === "RESET" ? null : Number(amount) || null })
@@ -116,10 +118,16 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
         </p>
       )}
       <Field label={copy.points.reason} error={errors.notes}>
-        <Input required maxLength={200} placeholder={copy.points.reasonPlaceholder} value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Input
+          required
+          maxLength={200}
+          placeholder={forStudent ? copy.points.reasonPlaceholder : undefined}
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
       </Field>
 
-      {reasons.data && reasons.data.length > 0 && (
+      {forStudent && reasons.data && reasons.data.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {reasons.data.map((r) => (
             <button
@@ -140,7 +148,7 @@ function NewTransaction({ target, onDone }: { target: PointsTarget; onDone: () =
         </div>
       )}
 
-      {trimmed && !isSavedReason && (
+      {forStudent && trimmed && !isSavedReason && (
         <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-600">
           <input type="checkbox" className="size-4 accent-brand-700" checked={saveReason} onChange={(e) => setSaveReason(e.target.checked)} />
           {copy.points.saveReason}

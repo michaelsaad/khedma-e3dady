@@ -267,12 +267,15 @@ function ExtraChip({ row, onClick }: { row: AttendanceRow; onClick: () => void }
       onClick={onClick}
       aria-label={copy.attendance.extraButton(row.studentName)}
       className={cn(
-        "flex h-10 w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl border text-sm font-semibold transition-all active:scale-95",
+        "flex h-10 min-w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl border px-1.5 text-sm font-semibold transition-all active:scale-95",
         has ? "border-brand-200 bg-brand-50 text-brand-800" : "border-stone-200 bg-white text-stone-400 hover:border-brand-300 hover:text-brand-700",
       )}
     >
       {has ? (
-        <span className="tabular">{formatSigned(row.extraPoints)}</span>
+        <>
+          <Star className="size-3.5 shrink-0 fill-current" />
+          <span className="tabular">{formatNumber(row.extraPoints)}</span>
+        </>
       ) : (
         <>
           <Plus className="size-3.5" />

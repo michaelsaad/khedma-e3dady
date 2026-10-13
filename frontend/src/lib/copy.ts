@@ -169,6 +169,7 @@ export const copy = {
     extraButton: (name: string) => `نقط زيادة لـ ${name}`,
     extraTitle: (name: string) => `نقط زيادة لـ ${name}`,
     extraSoFar: (points: number) => `خد النهارده ${formatSigned(points)} نقطة زيادة`,
+    extraRemove: (reason: string) => `شيل «${reason}»`,
     extraAnyAmount: "اكتب العدد",
     extraNoReasons: "مفيش أسباب محفوظة لسه. ضيف أول سبب.",
     extraNewReason: "سبب جديد",
@@ -180,7 +181,6 @@ export const copy = {
     extraAdded: (name: string, points: number, reason: string) => `${formatSigned(points)} ${reason} لـ ${name}`,
     extraUndo: "تراجع",
     extraUndone: "اتشالت النقط",
-    extraUndoNote: (reason: string) => `تراجع: ${reason}`,
   },
 
   students: {
@@ -247,7 +247,7 @@ export const copy = {
 
   reasons: {
     title: "الأسباب الجاهزة",
-    subtitle: "أسباب بتختارها بسرعة وإنت بتضيف نقط.",
+    subtitle: "أسباب بتختارها بسرعة وإنت بتضيف نقط للمخدومين.",
     removed: "اتشال السبب",
     saved: "اتحفظ السبب",
     added: "اتضاف السبب",

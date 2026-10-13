@@ -181,16 +181,25 @@ class AttendancePointsTest {
     @Test
     void extraPointsGivenOnAMeetingShowInItsAttendanceView() {
         save(true, false); // +2 service, not "extra"
-        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 3, "سلوك", OCT_9), adminId);
-        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 5, "مزمور", OCT_9), adminId);
+        // Any number of bonuses, the same reason more than once is fine.
+        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 2, "سلوك", OCT_9), adminId);
+        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 2, "سلوك", OCT_9), adminId);
+        var psalm = pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 5, "مزمور", OCT_9), adminId);
         pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 4, "مسابقة"), adminId); // untagged
-        assertThat(extraPoints(OCT_9)).isEqualTo(8);
+        assertThat(extraPoints(OCT_9)).isEqualTo(9);
         assertThat(extraPoints(LocalDate.of(2026, 10, 2))).isZero();
+        assertThat(pointsService.meetingBonuses(student.getId(), OCT_9)).hasSize(3);
 
-        // Undo is a tagged deduction, so the meeting's extra points go back.
-        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.DEDUCT, 5, "تراجع: مزمور", OCT_9), adminId);
-        assertThat(extraPoints(OCT_9)).isEqualTo(3);
-        assertThat(balance()).isEqualTo(2 + 3 + 4);
+        // Undo is a linked deduction: the bonus leaves the list and the meeting total, and can't be undone twice.
+        var undo = pointsService.undoMeetingBonus(student.getId(), psalm.id(), adminId);
+        assertThat(undo.reversesId()).isEqualTo(psalm.id());
+        assertThat(undo.amount()).isEqualTo(-5);
+        assertThat(extraPoints(OCT_9)).isEqualTo(4);
+        assertThat(pointsService.meetingBonuses(student.getId(), OCT_9))
+                .extracting(t -> t.notes()).containsExactly("سلوك", "سلوك");
+        assertThat(balance()).isEqualTo(2 + 4 + 4);
+        assertThatThrownBy(() -> pointsService.undoMeetingBonus(student.getId(), psalm.id(), adminId))
+                .extracting("code").isEqualTo(ErrorCode.TRANSACTION_NOT_UNDOABLE);
     }
 
     private int extraPoints(LocalDate date) {

@@ -1,5 +1,9 @@
 package com.khedma.points;
 
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,6 +37,20 @@ public class PointsController {
     public TransactionResponse studentPoints(@PathVariable Long id, @Valid @RequestBody ManualPointsRequest request,
                                              @AuthenticationPrincipal AuthUser actor) {
         return pointsService.manualForStudent(id, request, actor.id());
+    }
+
+    /** Bonuses a student got on one meeting (from the attendance page) that are still active. */
+    @GetMapping("/students/{id}/meeting-bonuses")
+    public List<TransactionResponse> meetingBonuses(@PathVariable Long id,
+                                                    @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return pointsService.meetingBonuses(id, date);
+    }
+
+    @PostMapping("/students/{id}/points/{transactionId}/undo")
+    @ResponseStatus(HttpStatus.CREATED)
+    public TransactionResponse undoMeetingBonus(@PathVariable Long id, @PathVariable Long transactionId,
+                                                @AuthenticationPrincipal AuthUser actor) {
+        return pointsService.undoMeetingBonus(id, transactionId, actor.id());
     }
 
     @PostMapping("/groups/{id}/points")

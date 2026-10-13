@@ -1,6 +1,8 @@
 package com.khedma.points;
 
 import java.time.Clock;
+import java.time.LocalDate;
+import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -75,8 +77,38 @@ public class PointsService {
         tx.setGroup(group);
         group.setPointsBalance(group.getPointsBalance() + delta);
         tx.setBalanceAfter(group.getPointsBalance());
-        reasons.incrementUsage(tx.getNotes());
+        // Saved reasons are for student points only, so group notes don't affect their ranking.
         return TransactionResponse.of(transactions.save(tx));
+    }
+
+    /**
+     * Undoes one meeting bonus (given from the attendance page) with a linked deduction of the same
+     * amount and reason. Like attendance reversals it may take the balance below zero.
+     */
+    @Transactional
+    public TransactionResponse undoMeetingBonus(Long studentId, Long transactionId, Long actorId) {
+        Student student = students.findByIdForUpdate(studentId)
+                .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
+        PointTransaction bonus = transactions.findById(transactionId)
+                .filter(t -> t.getStudent() != null && t.getStudent().getId().equals(studentId))
+                .orElseThrow(() -> new ApiException(ErrorCode.TRANSACTION_NOT_FOUND));
+        if (bonus.getType() != TransactionType.MANUAL_ADD || bonus.getMeetingDate() == null
+                || transactions.existsByReversesId(bonus.getId())) {
+            throw new ApiException(ErrorCode.TRANSACTION_NOT_UNDOABLE);
+        }
+        PointTransaction undo = newTransaction(TransactionType.MANUAL_DEDUCT, -bonus.getAmount(), bonus.getNotes(), actorId);
+        undo.setStudent(student);
+        undo.setReverses(bonus);
+        undo.setMeetingDate(bonus.getMeetingDate());
+        student.setPointsBalance(student.getPointsBalance() + undo.getAmount());
+        undo.setBalanceAfter(student.getPointsBalance());
+        return TransactionResponse.of(transactions.save(undo));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> meetingBonuses(Long studentId, LocalDate date) {
+        if (!students.existsById(studentId)) throw new ApiException(ErrorCode.STUDENT_NOT_FOUND);
+        return transactions.findActiveMeetingBonuses(studentId, date).stream().map(TransactionResponse::of).toList();
     }
 
     private static int manualDelta(ManualPointsRequest request, int balance) {

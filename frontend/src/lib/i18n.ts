@@ -36,6 +36,8 @@ const ERRORS: Record<string, string> = {
   AMOUNT_REQUIRED: "اكتب عدد النقط",
   INSUFFICIENT_BALANCE: "الرصيد مش كفاية للخصم",
   BALANCE_ALREADY_ZERO: "الرصيد صفر بالفعل",
+  TRANSACTION_NOT_FOUND: "الحركة دي مش موجودة",
+  TRANSACTION_NOT_UNDOABLE: "النقط دي اتشالت قبل كده",
   INVALID_SEASON_RANGE: "نهاية السنة لازم تكون بعد بدايتها",
   REASON_NOT_FOUND: "السبب ده مش موجود",
   REASON_ALREADY_EXISTS: "السبب ده موجود في القايمة بالفعل",
@@ -106,6 +108,8 @@ export function transactionNote(t: Transaction): string {
     if (t.type !== "ATTENDANCE_REVERSAL") return base;
     return t.notes.includes("(meeting skipped)") ? `إلغاء ${base} (سكيب)` : `إلغاء ${base}`;
   }
+  // An undone meeting bonus keeps the original reason as its note.
+  if (t.type === "MANUAL_DEDUCT" && t.reversesId) return `تراجع: ${t.notes}`;
   return t.notes;
 }
 

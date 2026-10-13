@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Settings2 } from "lucide-react";
+import { Plus, Settings2, Star, X } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -22,12 +22,19 @@ interface Grant {
 }
 
 /**
- * Quick extra points from the attendance page: one tap on a saved reason adds its points
- * (tagged with the meeting date) and offers an undo; a new reason can be saved on the way.
+ * Bonuses from the attendance page: one tap on a saved reason adds its points (tagged with the
+ * meeting date), any number of times; a one-off or new reason can be typed and optionally saved.
+ * The dialog lists the student's bonuses for the meeting, each removable.
  */
 export function ExtraPointsDialog({ date, target, onClose }: { date: string; target: ExtraPointsTarget | null; onClose: () => void }) {
   const queryClient = useQueryClient();
   const reasons = useQuery({ queryKey: ["point-reasons"], queryFn: () => api.get<PointReason[]>("/point-reasons") });
+  const bonusesKey = ["meeting-bonuses", date, target?.studentId];
+  const bonuses = useQuery({
+    queryKey: bonusesKey,
+    queryFn: () => api.get<Transaction[]>(`/students/${target!.studentId}/meeting-bonuses`, { date }),
+    enabled: Boolean(target),
+  });
   const [pending, setPending] = useState<PointReason | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -38,19 +45,13 @@ export function ExtraPointsDialog({ date, target, onClose }: { date: string; tar
   };
 
   const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ["attendance", date] });
-    queryClient.invalidateQueries({ queryKey: ["students"] });
-    queryClient.invalidateQueries({ queryKey: ["transactions"] });
-    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-    queryClient.invalidateQueries({ queryKey: ["point-reasons"] });
+    for (const key of [["attendance", date], ["meeting-bonuses", date], ["students"], ["transactions"], ["dashboard"], ["point-reasons"]]) {
+      queryClient.invalidateQueries({ queryKey: key });
+    }
   };
 
-  const post = (studentId: number, kind: "ADD" | "DEDUCT", amount: number, notes: string) =>
-    api.post<Transaction>(`/students/${studentId}/points`, { kind, amount, notes, meetingDate: date });
-
   const undo = useMutation({
-    mutationFn: ({ studentId, grant }: { studentId: number; grant: Grant }) =>
-      post(studentId, "DEDUCT", grant.amount, copy.attendance.extraUndoNote(grant.label)),
+    mutationFn: ({ studentId, txId }: { studentId: number; txId: number }) => api.post<Transaction>(`/students/${studentId}/points/${txId}/undo`),
     onSuccess: () => {
       toast.success(copy.attendance.extraUndone);
       refresh();
@@ -64,15 +65,17 @@ export function ExtraPointsDialog({ date, target, onClose }: { date: string; tar
         // Saved first so this use counts towards its ranking; best effort, the points still go in if it fails.
         await api.post("/point-reasons", { label: grant.label, defaultAmount: grant.amount }).catch(() => toast.warning(copy.points.reasonNotSaved));
       }
-      return post(studentId, "ADD", grant.amount, grant.label);
+      return api.post<Transaction>(`/students/${studentId}/points`, { kind: "ADD", amount: grant.amount, notes: grant.label, meetingDate: date });
     },
-    onSuccess: (_tx, { studentId, studentName, grant: g }) => {
+    onSuccess: (tx, { studentId, studentName, grant: g }) => {
       toast.success(copy.attendance.extraAdded(studentName, g.amount, g.label), {
         duration: 6000,
-        action: { label: copy.attendance.extraUndo, onClick: () => undo.mutate({ studentId, grant: g }) },
+        action: { label: copy.attendance.extraUndo, onClick: () => undo.mutate({ studentId, txId: tx.id }) },
       });
       refresh();
-      close();
+      // Stay open so several bonuses can be given in a row.
+      setPending(null);
+      setCreating(false);
     },
     onError: (error) => toast.error(errorMessage(error)),
   });
@@ -84,12 +87,37 @@ export function ExtraPointsDialog({ date, target, onClose }: { date: string; tar
     else setPending(reason);
   };
 
+  const given = bonuses.data ?? [];
+  const total = bonuses.data ? given.reduce((sum, t) => sum + t.amount, 0) : (target?.extraPoints ?? 0);
+
   return (
     <Dialog open={Boolean(target)} onClose={close} title={target ? copy.attendance.extraTitle(target.studentName) : ""}>
       {target && (
         <div className="space-y-4">
-          {target.extraPoints !== 0 && (
-            <p className="rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-800">{copy.attendance.extraSoFar(target.extraPoints)}</p>
+          {given.length > 0 && (
+            <div className="rounded-2xl bg-brand-50 p-3">
+              <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-brand-800">
+                <Star className="size-4 fill-current" />
+                {copy.attendance.extraSoFar(total)}
+              </p>
+              <ul className="space-y-1">
+                {given.map((t) => (
+                  <li key={t.id} className="flex items-center gap-2 rounded-xl bg-white px-3 py-1.5 text-sm">
+                    <span className="min-w-0 flex-1 truncate">{t.notes}</span>
+                    <span className="font-semibold text-brand-700 tabular">{formatSigned(t.amount)}</span>
+                    <button
+                      type="button"
+                      onClick={() => undo.mutate({ studentId: target.studentId, txId: t.id })}
+                      disabled={undo.isPending}
+                      aria-label={copy.attendance.extraRemove(t.notes)}
+                      className="grid size-7 place-items-center rounded-lg text-stone-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {creating ? (

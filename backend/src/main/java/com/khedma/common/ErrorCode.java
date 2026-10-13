@@ -49,6 +49,8 @@ public enum ErrorCode {
     AMOUNT_REQUIRED(HttpStatus.BAD_REQUEST, "Amount is required"),
     INSUFFICIENT_BALANCE(HttpStatus.BAD_REQUEST, "Balance is too low for this deduction"),
     BALANCE_ALREADY_ZERO(HttpStatus.BAD_REQUEST, "Balance is already zero"),
+    TRANSACTION_NOT_FOUND(HttpStatus.NOT_FOUND, "Transaction not found"),
+    TRANSACTION_NOT_UNDOABLE(HttpStatus.CONFLICT, "Only meeting bonuses that are not undone yet can be undone"),
     REASON_NOT_FOUND(HttpStatus.NOT_FOUND, "Reason not found"),
     REASON_ALREADY_EXISTS(HttpStatus.CONFLICT, "A reason with this text already exists"),
 
