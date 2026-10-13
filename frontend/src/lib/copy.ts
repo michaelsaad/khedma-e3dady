@@ -254,7 +254,6 @@ export const copy = {
     added: "اتضاف السبب",
     fixedPoints: (points: number) => `${n(points)} نقطة`,
     noFixedPoints: "من غير عدد ثابت",
-    used: (times: number) => `اتستخدم ${n(times)} مرة`,
     editLabel: (label: string) => `تعديل ${label}`,
     deleteLabel: (label: string) => `حذف ${label}`,
     empty: "مفيش أسباب محفوظة لسه.",

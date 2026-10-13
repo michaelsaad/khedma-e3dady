@@ -54,7 +54,7 @@ export function ReasonsManager() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{r.label}</p>
                   <p className="text-xs text-stone-500">
-                    {r.defaultAmount ? copy.reasons.fixedPoints(r.defaultAmount) : copy.reasons.noFixedPoints} · {copy.reasons.used(r.usageCount)}
+                    {r.defaultAmount ? copy.reasons.fixedPoints(r.defaultAmount) : copy.reasons.noFixedPoints}
                   </p>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => setEditingId(r.id)} aria-label={copy.reasons.editLabel(r.label)}>
