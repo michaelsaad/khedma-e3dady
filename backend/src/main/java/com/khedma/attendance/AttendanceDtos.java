@@ -25,7 +25,9 @@ public final class AttendanceDtos {
             Long groupId,
             boolean service,
             boolean mass,
-            boolean recorded) {}
+            boolean recorded,
+            /* Net manual points given on this meeting from the attendance page. */
+            int extraPoints) {}
 
     /** previous/next are the neighbouring valid meetings (null at the edges) for arrow navigation. */
     public record MeetingAttendance(

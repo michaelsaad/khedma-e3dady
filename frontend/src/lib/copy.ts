@@ -2,7 +2,7 @@
 // Edit the wording here; the pages only reference these keys.
 // (Backend error messages are translated separately in lib/i18n.ts.)
 
-import { formatNumber } from "./i18n";
+import { formatNumber, formatSigned } from "./i18n";
 
 const n = formatNumber;
 
@@ -165,6 +165,22 @@ export const copy = {
     skippedReason: (reason: string) => `السبب: ${reason}`,
     restore: "رجّعها",
     restored: (points: number) => (points > 0 ? `رجعت الجمعة (+${n(points)} نقطة)` : "رجعت الجمعة"),
+    // Extra points from the attendance list
+    extraButton: (name: string) => `نقط زيادة لـ ${name}`,
+    extraTitle: (name: string) => `نقط زيادة لـ ${name}`,
+    extraSoFar: (points: number) => `خد النهارده ${formatSigned(points)} نقطة زيادة`,
+    extraAnyAmount: "اكتب العدد",
+    extraNoReasons: "مفيش أسباب محفوظة لسه. ضيف أول سبب.",
+    extraNewReason: "سبب جديد",
+    extraEditReasons: "تعديل الأسباب",
+    extraReasonPlaceholder: "مثلًا: سلوك، حافظ مزمور",
+    extraAmountFor: (reason: string) => `عدد نقط «${reason}»`,
+    extraSaveReason: "احفظه للمرات الجاية",
+    extraSubmit: "ضيف",
+    extraAdded: (name: string, points: number, reason: string) => `${formatSigned(points)} ${reason} لـ ${name}`,
+    extraUndo: "تراجع",
+    extraUndone: "اتشالت النقط",
+    extraUndoNote: (reason: string) => `تراجع: ${reason}`,
   },
 
   students: {

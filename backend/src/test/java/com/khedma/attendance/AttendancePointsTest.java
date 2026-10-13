@@ -179,6 +179,28 @@ class AttendancePointsTest {
     }
 
     @Test
+    void extraPointsGivenOnAMeetingShowInItsAttendanceView() {
+        save(true, false); // +2 service, not "extra"
+        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 3, "سلوك", OCT_9), adminId);
+        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 5, "مزمور", OCT_9), adminId);
+        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.ADD, 4, "مسابقة"), adminId); // untagged
+        assertThat(extraPoints(OCT_9)).isEqualTo(8);
+        assertThat(extraPoints(LocalDate.of(2026, 10, 2))).isZero();
+
+        // Undo is a tagged deduction, so the meeting's extra points go back.
+        pointsService.manualForStudent(student.getId(), new ManualPointsRequest(ManualKind.DEDUCT, 5, "تراجع: مزمور", OCT_9), adminId);
+        assertThat(extraPoints(OCT_9)).isEqualTo(3);
+        assertThat(balance()).isEqualTo(2 + 3 + 4);
+    }
+
+    private int extraPoints(LocalDate date) {
+        entityManager.flush();
+        return attendanceService.forMeeting(date).rows().stream()
+                .filter(r -> r.studentId().equals(student.getId()))
+                .findFirst().orElseThrow().extraPoints();
+    }
+
+    @Test
     void meetingViewHasNeighbourNavigation() {
         var view = attendanceService.forMeeting(LocalDate.of(2026, 10, 2));
         assertThat(view.previousMeeting()).isEqualTo(LocalDate.of(2026, 9, 25));

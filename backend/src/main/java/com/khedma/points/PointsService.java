@@ -59,6 +59,7 @@ public class PointsService {
         int delta = manualDelta(request, student.getPointsBalance());
         PointTransaction tx = newTransaction(manualType(request), delta, request.notes().trim(), actorId);
         tx.setStudent(student);
+        tx.setMeetingDate(request.meetingDate());
         student.setPointsBalance(student.getPointsBalance() + delta);
         tx.setBalanceAfter(student.getPointsBalance());
         reasons.incrementUsage(tx.getNotes());

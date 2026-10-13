@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, CalendarOff, Check, ChevronLeft, ChevronRight, Church, HandHeart, RotateCcw, Search, Users } from "lucide-react";
+import { CalendarDays, CalendarOff, Check, ChevronLeft, ChevronRight, Church, HandHeart, Plus, RotateCcw, Search, Star, Users } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { ExtraPointsDialog } from "@/components/ExtraPointsDialog";
 import { Badge, Button, Card, Dialog, EmptyState, ErrorState, Field, Input, PageHeader, Segmented, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
 import { errorMessage, formatDate, formatDateYear, formatNumber, formatShortDate, formatSigned, gradeLabel, GRADES } from "@/lib/i18n";
@@ -55,6 +56,7 @@ function MeetingView({
   const [grade, setGrade] = useState<Grade | "ALL">("ALL");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState<Set<number>>(new Set());
+  const [extraFor, setExtraFor] = useState<AttendanceRow | null>(null);
   const q = useDeferredValue(search.trim());
 
   const save = useMutation({
@@ -176,6 +178,7 @@ function MeetingView({
                       disabled={saving.has(row.studentId)}
                       onClick={() => toggle(row, "mass")}
                     />
+                    <ExtraChip row={row} onClick={() => setExtraFor(row)} />
                   </li>
                 ))}
               </ul>
@@ -193,6 +196,7 @@ function MeetingView({
       )}
 
       <SkipDialog date={date} open={skipOpen} onClose={() => setSkipOpen(false)} />
+      <ExtraPointsDialog date={date} target={extraFor} onClose={() => setExtraFor(null)} />
 
       <Dialog open={pickerOpen} onClose={() => setPickerOpen(false)} title={copy.attendance.pickerTitle}>
         <MeetingPicker
@@ -250,6 +254,31 @@ function ToggleChip({
     >
       {active && <Check className="size-4" />}
       {label}
+    </button>
+  );
+}
+
+/** Opens the extra-points dialog; shows the meeting's net extra points once there are any. */
+function ExtraChip({ row, onClick }: { row: AttendanceRow; onClick: () => void }) {
+  const has = row.extraPoints !== 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={copy.attendance.extraButton(row.studentName)}
+      className={cn(
+        "flex h-10 w-12 shrink-0 items-center justify-center gap-0.5 rounded-xl border text-sm font-semibold transition-all active:scale-95",
+        has ? "border-brand-200 bg-brand-50 text-brand-800" : "border-stone-200 bg-white text-stone-400 hover:border-brand-300 hover:text-brand-700",
+      )}
+    >
+      {has ? (
+        <span className="tabular">{formatSigned(row.extraPoints)}</span>
+      ) : (
+        <>
+          <Plus className="size-3.5" />
+          <Star className="size-4" />
+        </>
+      )}
     </button>
   );
 }

@@ -107,6 +107,8 @@ export interface AttendanceRow {
   service: boolean;
   mass: boolean;
   recorded: boolean;
+  /** Net manual points given on this meeting from the attendance page. */
+  extraPoints: number;
 }
 
 export interface MeetingAttendance {

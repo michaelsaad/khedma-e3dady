@@ -17,11 +17,20 @@ public final class PointsDtos {
 
     public enum ManualKind { ADD, DEDUCT, RESET }
 
-    /** {@code amount} is required for ADD/DEDUCT and ignored for RESET. */
+    /**
+     * {@code amount} is required for ADD/DEDUCT and ignored for RESET.
+     * {@code meetingDate} tags points given from the attendance page with that Friday.
+     */
     public record ManualPointsRequest(
             @NotNull ManualKind kind,
             @Min(value = 1) @Max(value = 10000) Integer amount,
-            @NotBlank @Size(max = 200) String notes) {}
+            @NotBlank @Size(max = 200) String notes,
+            LocalDate meetingDate) {
+
+        public ManualPointsRequest(ManualKind kind, Integer amount, String notes) {
+            this(kind, amount, notes, null);
+        }
+    }
 
     public record TransactionResponse(
             Long id,

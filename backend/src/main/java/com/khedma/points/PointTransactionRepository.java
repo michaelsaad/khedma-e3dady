@@ -1,5 +1,6 @@
 package com.khedma.points;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -21,6 +22,15 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
               and not exists (select r.id from PointTransaction r where r.reverses = t)
             """)
     List<PointTransaction> findActiveAttendanceAwards(Long attendanceId, AttendanceKind kind);
+
+    /** Net manual points per student given on a meeting day, as rows of [studentId, sum]. */
+    @Query("""
+            select t.student.id, sum(t.amount) from PointTransaction t
+            where t.meetingDate = :date
+              and t.type in (com.khedma.points.TransactionType.MANUAL_ADD, com.khedma.points.TransactionType.MANUAL_DEDUCT)
+            group by t.student.id
+            """)
+    List<Object[]> sumManualPointsByStudent(LocalDate date);
 
     @EntityGraph(attributePaths = {"student", "group", "createdBy", "attendance"})
     Page<PointTransaction> findAllByStudentId(Long studentId, Pageable pageable);

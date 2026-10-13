@@ -1,6 +1,7 @@
 package com.khedma.points;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import com.khedma.attendance.Attendance;
 import com.khedma.attendance.AttendanceKind;
@@ -63,6 +64,9 @@ public class PointTransaction {
 
     @Enumerated(EnumType.STRING)
     private AttendanceKind attendanceKind;
+
+    /** The Friday a manual transaction was given on (from the attendance page); null otherwise. */
+    private LocalDate meetingDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reverses_id")

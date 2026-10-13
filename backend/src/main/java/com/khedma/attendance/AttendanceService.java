@@ -22,6 +22,7 @@ import com.khedma.attendance.AttendanceDtos.MeetingsResponse;
 import com.khedma.attendance.AttendanceDtos.SaveAttendanceResult;
 import com.khedma.common.ApiException;
 import com.khedma.common.ErrorCode;
+import com.khedma.points.PointTransactionRepository;
 import com.khedma.points.PointsService;
 import com.khedma.settings.AppSettings;
 import com.khedma.settings.SettingsService;
@@ -41,18 +42,21 @@ public class AttendanceService {
     private final StudentRepository students;
     private final UserRepository users;
     private final PointsService pointsService;
+    private final PointTransactionRepository transactions;
     private final SettingsService settingsService;
     private final MeetingCalendar calendar;
     private final Clock clock;
 
     public AttendanceService(AttendanceRepository attendanceRepository, SkippedMeetingRepository skippedMeetings,
                              StudentRepository students, UserRepository users, PointsService pointsService,
-                             SettingsService settingsService, MeetingCalendar calendar, Clock clock) {
+                             PointTransactionRepository transactions, SettingsService settingsService,
+                             MeetingCalendar calendar, Clock clock) {
         this.attendanceRepository = attendanceRepository;
         this.skippedMeetings = skippedMeetings;
         this.students = students;
         this.users = users;
         this.pointsService = pointsService;
+        this.transactions = transactions;
         this.settingsService = settingsService;
         this.calendar = calendar;
         this.clock = clock;
@@ -71,6 +75,8 @@ public class AttendanceService {
         calendar.requireValidMeeting(date, settings);
         Map<Long, Attendance> byStudent = attendanceRepository.findAllByMeetingDate(date).stream()
                 .collect(Collectors.toMap(a -> a.getStudent().getId(), Function.identity()));
+        Map<Long, Integer> extra = transactions.sumManualPointsByStudent(date).stream()
+                .collect(Collectors.toMap(r -> (Long) r[0], r -> ((Number) r[1]).intValue()));
         List<AttendanceRow> rows = students.findAllByActiveTrue().stream()
                 .sorted(BY_GRADE_THEN_NAME)
                 .map(student -> {
@@ -82,7 +88,8 @@ public class AttendanceService {
                             student.getGroup() == null ? null : student.getGroup().getId(),
                             a != null && a.isService(),
                             a != null && a.isMass(),
-                            a != null);
+                            a != null,
+                            extra.getOrDefault(student.getId(), 0));
                 })
                 .toList();
         List<LocalDate> meetings = calendar.pastMeetings(settings);
