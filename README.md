@@ -20,6 +20,9 @@ instantly and awards points automatically, so the points table is always up to d
 - **Points ledger**: every change (automatic or manual add / deduct / reset) is an immutable transaction with
   a reason, author and running balance. Frequent reasons can be saved and picked in one tap.
 - **Groups**: teams with their own manually managed points and a leaderboard.
+- **Push notifications**: free Web Push (no third-party service). A super admin can message everyone or just the
+  admins; admins get a reminder the evening before a meeting and a morning alert about students who missed the last
+  meetings; a student with a linked account is told when they receive bonus points.
 - **Dashboard**: season stats, ranked student cards, attendance history, and call / WhatsApp buttons.
 - **Accounts & roles**: email + password with a 6-digit email code (verification and password reset), or
   Google sign-in. New accounts wait for approval; roles are `USER`, `ADMIN` and `SUPER_ADMIN`.
@@ -102,11 +105,23 @@ API settings come from environment variables. See [`backend/.env.example`](backe
 | `SUPER_ADMIN_EMAILS`   | Comma-separated emails promoted to `SUPER_ADMIN` once verified    |
 | `CORS_ALLOWED_ORIGINS` | Web app origin(s)                                                 |
 | `GOOGLE_CLIENT_ID`     | Optional, enables Google sign-in                                  |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Optional, enable push notifications (see below) |
 | `MAIL_FROM`, `BREVO_API_KEY` | Sender and Brevo key for the code emails                    |
 | `SPRING_MAIL_*`        | Plain SMTP instead of Brevo                                       |
 
 The web app reads `VITE_API_URL` and the optional `VITE_GOOGLE_CLIENT_ID`
 (see [`frontend/.env.example`](frontend/.env.example)).
+
+## Push notifications
+
+The app is an installable PWA and sends notifications with the standard Web Push protocol (VAPID), implemented
+with the JDK only (no vendor, no cost). To turn it on, generate a key pair once
+(`npx web-push generate-vapid-keys`) and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`
+(a `mailto:` address or your site URL) on the API. Each person then taps **Turn on notifications** in the account
+menu on their device. On iPhone this only works after adding the site to the Home Screen (iOS 16.4+).
+
+The two scheduled notifications use `app.push.friday-reminder-cron` and `app.push.absence-alert-cron`
+(in the `app.timezone` zone); a marker row per day keeps them from firing twice.
 
 ## Deployment
 
@@ -136,6 +151,7 @@ that the web app translates to Arabic.
 | Attendance  | `GET /attendance/meetings`, `GET /attendance/{date}`, `PUT /attendance/{date}/students/{id}`, `PUT`/`DELETE /attendance/{date}/skip` | Admin |
 | Students    | `GET`/`POST /students`, `PUT`/`DELETE /students/{id}`                            | Admin         |
 | Groups      | `GET`/`POST /groups`, `PUT /groups/{id}`                                         | Admin         |
+| Push        | `GET /push/config` (public), `POST`/`DELETE /push/subscribe`; `POST /notifications/broadcast`, `GET /notifications/recipients`, `/broadcasts` | Signed in / Super admin |
 | Points      | `POST /students/{id}/points`, `POST /groups/{id}/points`, `GET /transactions`, `/point-reasons` | Admin |
 | Settings    | `GET`/`PUT /settings`                                                            | Admin         |
 | Users       | `GET /users`, `PATCH /users/{id}`, `PUT /users/{id}/student`                     | Super admin   |

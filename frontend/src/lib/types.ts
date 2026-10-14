@@ -1,6 +1,28 @@
 // Mirrors the backend DTOs.
 
 export type Role = "USER" | "ADMIN" | "SUPER_ADMIN";
+
+export interface PushConfig {
+  enabled: boolean;
+  publicKey: string | null;
+}
+
+export type Audience = "ALL" | "ADMINS";
+
+export interface Recipients {
+  accounts: number;
+  devices: number;
+}
+
+export interface Broadcast {
+  id: number;
+  title: string;
+  body: string;
+  audience: Audience;
+  sentBy: string | null;
+  devices: number;
+  createdAt: string;
+}
 export type UserStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type Grade = "FIRST" | "SECOND" | "THIRD";
 export type AttendanceKind = "SERVICE" | "MASS";

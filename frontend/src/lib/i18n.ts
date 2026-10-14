@@ -6,6 +6,8 @@ const ERRORS: Record<string, string> = {
   NETWORK_ERROR: "تعذّر الاتصال بالسيرفر، تأكد من الإنترنت وحاول مرة أخرى",
   UNKNOWN: "حصل خطأ غير متوقع",
   VALIDATION_FAILED: "راجع البيانات المدخلة",
+  PUSH_NOT_CONFIGURED: "الإشعارات مش متفعّلة على السيرفر لسه",
+  PUSH_ENDPOINT_NOT_ALLOWED: "المتصفح ده مش مدعوم للإشعارات",
   MALFORMED_REQUEST: "طلب غير صالح",
   DATA_CONFLICT: "البيانات تتعارض مع بيانات موجودة",
   UNAUTHENTICATED: "سجّل الدخول أولًا",

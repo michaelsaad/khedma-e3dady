@@ -55,6 +55,7 @@ export const copy = {
     groups: "الجروبات",
     history: "سجل النقط",
     users: "المستخدمين",
+    notifications: "الإشعارات",
     settings: "الإعدادات",
     more: "المزيد",
     signOut: "تسجيل الخروج",
@@ -260,6 +261,44 @@ export const copy = {
     empty: "مفيش أسباب محفوظة لسه.",
     placeholder: "سبب جديد، مثلًا: حفظ آية",
     pointsPlaceholder: "النقط (اختياري)",
+  },
+
+  // The notification toggle in the account menu
+  push: {
+    on: "الإشعارات شغّالة",
+    off: "شغّل الإشعارات",
+    turningOn: "بنشغّلها…",
+    blocked: "الإشعارات متقفلة. افتحها من إعدادات المتصفح للموقع ده.",
+    needsInstall: "عشان الإشعارات تشتغل على الآيفون، ضيف الموقع للشاشة الرئيسية الأول.",
+    enabledToast: "الإشعارات اشتغلت على الجهاز ده",
+    disabledToast: "الإشعارات وقفت على الجهاز ده",
+    denied: "ما وافقتش على الإشعارات",
+    failed: "معرفناش نشغّل الإشعارات، جرّب تاني",
+  },
+
+  // The super admin's "send a message to everyone" page
+  notifications: {
+    title: "إشعارات",
+    subtitle: "ابعت رسالة لموبايلات الناس اللي شغّلوا الإشعارات.",
+    notConfigured: "الإشعارات مش متفعّلة على السيرفر لسه. لازم تتضاف مفاتيح VAPID في إعدادات السيرفر.",
+    titleLabel: "العنوان",
+    titlePlaceholder: "مثلًا: اجتماع بكرة",
+    bodyLabel: "الرسالة",
+    bodyPlaceholder: "اكتب الرسالة هنا",
+    audienceLabel: "تروح لمين؟",
+    audienceAll: "الكل",
+    audienceAdmins: "الأدمنز بس",
+    recipients: (devices: number, accounts: number) => `هتوصل لـ ${n(devices)} جهاز (${n(accounts)} حساب)`,
+    noDevices: "لسه محدش شغّل الإشعارات في المجموعة دي.",
+    send: "ابعت",
+    confirmTitle: "تبعت الرسالة؟",
+    confirmText: (devices: number) => `هتوصل لـ ${n(devices)} جهاز دلوقتي، ومينفعش تتسحب.`,
+    confirmSend: "ابعت دلوقتي",
+    sent: (devices: number) => `اتبعتت لـ ${n(devices)} جهاز`,
+    historyTitle: "آخر الرسائل",
+    historyEmpty: "لسه ما بعتّش رسايل.",
+    sentBy: (name: string) => `من ${name}`,
+    devicesCount: (devices: number) => `${n(devices)} جهاز`,
   },
 
   settings: {

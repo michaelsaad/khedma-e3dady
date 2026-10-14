@@ -17,7 +17,8 @@ public record AppProperties(
         Otp otp,
         Mail mail,
         List<String> superAdminEmails,
-        Cors cors) {
+        Cors cors,
+        Push push) {
 
     public record Jwt(String secret, Duration ttl) {}
 
@@ -36,6 +37,21 @@ public record AppProperties(
     }
 
     public record Cors(List<String> allowedOrigins) {}
+
+    /**
+     * Web Push. The VAPID keys identify this server to browsers' push services; without them push is off.
+     * Cron expressions run in {@link #timezone()}.
+     */
+    public record Push(String publicKey, String privateKey, String subject, boolean schedulerEnabled,
+                       String fridayReminderCron, String absenceAlertCron, int absenceMissedMeetings) {
+        public boolean enabled() {
+            return notBlank(publicKey) && notBlank(privateKey) && notBlank(subject);
+        }
+
+        private static boolean notBlank(String value) {
+            return value != null && !value.isBlank();
+        }
+    }
 
     public Set<String> normalizedSuperAdminEmails() {
         if (superAdminEmails == null) return Set.of();

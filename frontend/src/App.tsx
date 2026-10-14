@@ -9,6 +9,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import GroupsPage from "@/pages/GroupsPage";
 import LoginPage from "@/pages/LoginPage";
 import MyPointsPage from "@/pages/MyPointsPage";
+import NotificationsPage from "@/pages/NotificationsPage";
 import PendingPage from "@/pages/PendingPage";
 import SettingsPage from "@/pages/SettingsPage";
 import StudentDetailPage from "@/pages/StudentDetailPage";
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="transactions" element={<RequireRole role="ADMIN"><TransactionsPage /></RequireRole>} />
         <Route path="settings" element={<RequireRole role="ADMIN"><SettingsPage /></RequireRole>} />
         <Route path="users" element={<RequireRole role="SUPER_ADMIN"><UsersPage /></RequireRole>} />
+        <Route path="notifications" element={<RequireRole role="SUPER_ADMIN"><NotificationsPage /></RequireRole>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

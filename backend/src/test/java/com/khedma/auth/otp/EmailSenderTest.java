@@ -33,7 +33,7 @@ class EmailSenderTest {
         AppProperties properties = new AppProperties(
                 ZoneId.of("Africa/Cairo"), null, null, null,
                 new AppProperties.Mail("sender@test.local", apiKey, "https://brevo.test"),
-                List.of(), null);
+                List.of(), null, null);
         return new EmailSender(new StaticListableBeanFactory().getBeanProvider(JavaMailSender.class), properties, http);
     }
 

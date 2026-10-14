@@ -5,10 +5,13 @@ import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Map;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -18,6 +21,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import com.khedma.auth.otp.CodePurpose;
 import com.khedma.auth.otp.EmailSender;
 import com.khedma.config.AppProperties;
+import com.khedma.push.PushExecutor;
+import com.khedma.push.PushGateway;
 
 @TestConfiguration(proxyBeanMethods = false)
 public class TestcontainersConfig {
@@ -37,10 +42,57 @@ public class TestcontainersConfig {
         return Clock.fixed(NOW.toInstant(), NOW.getZone());
     }
 
+    /** Scheduled jobs are triggered by hand in tests so they never fire on the real wall clock. */
+    @Bean
+    DynamicPropertyRegistrar schedulerOff() {
+        return registry -> registry.add("app.push.scheduler-enabled", () -> "false");
+    }
+
+    /** Records every push instead of calling a real push service. */
+    @Bean
+    @Primary
+    CapturingPushGateway capturingPushGateway() {
+        return new CapturingPushGateway();
+    }
+
+    /** Runs push work on the calling thread so tests can assert right after the action. */
+    @Bean
+    @Primary
+    PushExecutor directPushExecutor() {
+        return Runnable::run;
+    }
+
     @Bean
     @Primary
     CapturingEmailSender capturingEmailSender(ObjectProvider<JavaMailSender> mailSender, AppProperties properties) {
         return new CapturingEmailSender(mailSender, properties);
+    }
+
+    /** Remembers pushes; endpoints containing "gone" answer GONE so pruning can be tested. */
+    public static class CapturingPushGateway implements PushGateway {
+
+        public record Sent(Target target, String payload) {}
+
+        private final List<Sent> sent = new CopyOnWriteArrayList<>();
+
+        @Override
+        public boolean enabled() {
+            return true;
+        }
+
+        @Override
+        public Outcome send(Target target, String payload) {
+            sent.add(new Sent(target, payload));
+            return target.endpoint().contains("gone") ? Outcome.GONE : Outcome.DELIVERED;
+        }
+
+        public List<Sent> sent() {
+            return List.copyOf(sent);
+        }
+
+        public void clear() {
+            sent.clear();
+        }
     }
 
     /** Keeps the last code sent to each address instead of sending email. */

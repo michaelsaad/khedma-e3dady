@@ -4,6 +4,7 @@ import {
   useEffect,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
+  type TextareaHTMLAttributes,
   type ReactNode,
   type SelectHTMLAttributes,
 } from "react";
@@ -66,6 +67,13 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   ref,
 ) {
   return <input ref={ref} className={cn(fieldBase, "h-10", className)} {...props} />;
+});
+
+export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea(
+  { className, ...props },
+  ref,
+) {
+  return <textarea ref={ref} className={cn(fieldBase, "min-h-24 py-2", className)} {...props} />;
 });
 
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {

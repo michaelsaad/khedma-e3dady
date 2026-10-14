@@ -53,6 +53,10 @@ public enum ErrorCode {
     REASON_NOT_FOUND(HttpStatus.NOT_FOUND, "Reason not found"),
     REASON_ALREADY_EXISTS(HttpStatus.CONFLICT, "A reason with this text already exists"),
 
+    // Push notifications
+    PUSH_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Push notifications are not configured on the server"),
+    PUSH_ENDPOINT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "This push service address is not accepted"),
+
     // Settings
     INVALID_SEASON_RANGE(HttpStatus.BAD_REQUEST, "Season end must be after season start");
 

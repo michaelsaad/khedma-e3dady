@@ -1,5 +1,6 @@
 package com.khedma.user;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,4 +15,7 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     Optional<AppUser> findByStudentId(Long studentId);
 
     List<AppUser> findAllByOrderByStatusAscDisplayNameAsc();
+
+    /** Approved accounts holding one of these roles. */
+    List<AppUser> findAllByStatusAndRoleIn(UserStatus status, Collection<Role> roles);
 }

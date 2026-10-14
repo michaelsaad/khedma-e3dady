@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import com.khedma.common.ErrorCode;
 import com.khedma.common.PageResponse;
 import com.khedma.group.GroupRepository;
 import com.khedma.group.StudentGroup;
+import com.khedma.points.PointsDtos.ManualKind;
 import com.khedma.points.PointsDtos.ManualPointsRequest;
 import com.khedma.points.PointsDtos.TransactionResponse;
 import com.khedma.points.reason.PointReasonRepository;
@@ -40,15 +42,18 @@ public class PointsService {
     private final UserRepository users;
     private final PointReasonRepository reasons;
     private final Clock clock;
+    private final ApplicationEventPublisher events;
 
     public PointsService(PointTransactionRepository transactions, StudentRepository students,
-                         GroupRepository groups, UserRepository users, PointReasonRepository reasons, Clock clock) {
+                         GroupRepository groups, UserRepository users, PointReasonRepository reasons, Clock clock,
+                         ApplicationEventPublisher events) {
         this.transactions = transactions;
         this.students = students;
         this.groups = groups;
         this.users = users;
         this.reasons = reasons;
         this.clock = clock;
+        this.events = events;
     }
 
     // ---- Manual transactions ------------------------------------------------------------
@@ -65,7 +70,11 @@ public class PointsService {
         student.setPointsBalance(student.getPointsBalance() + delta);
         tx.setBalanceAfter(student.getPointsBalance());
         reasons.incrementUsage(tx.getNotes());
-        return TransactionResponse.of(transactions.save(tx));
+        TransactionResponse saved = TransactionResponse.of(transactions.save(tx));
+        if (request.kind() == ManualKind.ADD) {
+            events.publishEvent(new PointsGiven(student.getId(), delta, tx.getNotes(), student.getPointsBalance()));
+        }
+        return saved;
     }
 
     @Transactional
