@@ -24,10 +24,10 @@
   --color-mass-700: #946c1a;
   --color-mass-800: #6f5113;
 
-  /* Warm sand for the app's top bar, navigation and page background. */
-  --color-sand-bar: #f2e6cb;
-  --color-sand-line: #e0d0a8;
-  --color-page: #faf5e8;
+  /* Cream for the top bar, navigation and page background. */
+  --color-sand-bar: #fbf4e2;
+  --color-sand-line: #eadcb8;
+  --color-page: #fefbf3;
 
   --color-gold-100: #fef3c7;
   --color-gold-500: #f59e0b;
