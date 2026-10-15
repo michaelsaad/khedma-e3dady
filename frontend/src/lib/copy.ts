@@ -142,7 +142,6 @@ export const copy = {
 
   attendance: {
     title: "الحضور",
-    subtitle: "اضغط خدمة أو قداس وبيتحفظ على طول.",
     noMeetingsTitle: "لسه مفيش اجتماعات",
     noMeetingsText: "أول اجتماع في السنة لسه مجاش.",
     saved: (name: string, points: string) => `${name}: ${points} نقطة`,
@@ -209,7 +208,6 @@ export const copy = {
 
   groups: {
     title: "الجروبات",
-    subtitle: "نقط الجروب بتتضاف يدوي",
     add: "جروب جديد",
     empty: "مفيش جروبات",
     addFirst: "إضافة جروب",
@@ -243,7 +241,6 @@ export const copy = {
 
   history: {
     title: "سجل النقط",
-    subtitle: "كل حركات النقط للمخدومين والجروبات. لإضافة نقط افتح المخدوم أو الجروب.",
     emptyTitle: "مفيش حركات لسه",
     emptyText: "النقط بتتسجل هنا أول ما تسجّل حضور أو تضيف نقط.",
   },
@@ -318,7 +315,6 @@ export const copy = {
 
   users: {
     title: "المستخدمين",
-    subtitle: "الموافقة على الحسابات والصلاحيات",
     saved: "اتحفظ",
     noRequests: "مفيش طلبات جديدة",
     empty: "مفيش مستخدمين هنا",

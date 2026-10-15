@@ -18,7 +18,6 @@ export default function GroupsPage() {
     <>
       <PageHeader
         title={copy.groups.title}
-        subtitle={copy.groups.subtitle}
         actions={
           <Button onClick={() => setEditing("new")}>
             <Plus className="size-4" />

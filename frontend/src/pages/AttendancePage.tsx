@@ -25,7 +25,7 @@ export default function AttendancePage() {
 
   return (
     <>
-      <PageHeader title={copy.attendance.title} subtitle={copy.attendance.subtitle} />
+      <PageHeader title={copy.attendance.title} />
       {!date ? (
         <Card>
           <EmptyState icon={<CalendarDays className="size-10" />} title={copy.attendance.noMeetingsTitle} text={copy.attendance.noMeetingsText} />
@@ -190,7 +190,7 @@ function MeetingView({
 
           <button
             onClick={() => setSkipOpen(true)}
-            className="mx-auto flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-red-600"
+            className="mx-auto flex items-center gap-1.5 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 shadow-xs transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700 active:scale-[0.98]"
           >
             <CalendarOff className="size-4" />
             {copy.attendance.skipLink}

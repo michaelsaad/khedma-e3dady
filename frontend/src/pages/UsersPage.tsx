@@ -36,7 +36,7 @@ export default function UsersPage() {
 
   return (
     <>
-      <PageHeader title={copy.users.title} subtitle={copy.users.subtitle} />
+      <PageHeader title={copy.users.title} />
       <Segmented
         className="mb-4"
         value={filter}

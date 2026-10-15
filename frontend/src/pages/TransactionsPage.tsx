@@ -19,7 +19,7 @@ export default function TransactionsPage() {
 
   return (
     <>
-      <PageHeader title={copy.history.title} subtitle={copy.history.subtitle} />
+      <PageHeader title={copy.history.title} />
       {history.isPending ? (
         <Spinner />
       ) : history.isError ? (
