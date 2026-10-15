@@ -60,7 +60,7 @@ export function Layout() {
   return (
     <div className="min-h-dvh lg:flex">
       {/* Desktop sidebar (right side in RTL) */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-e border-stone-200 bg-white lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-e border-sand-line bg-sand-bar lg:flex">
         <Brand />
         <nav className="flex-1 space-y-1 px-3">
           {items.map((item) => (
@@ -73,7 +73,7 @@ export function Layout() {
           </div>
         )}
         {user && (
-          <div className="flex items-center gap-3 border-t border-stone-100 p-4">
+          <div className="flex items-center gap-3 border-t border-sand-line p-4">
             <Avatar name={user.displayName} url={user.avatarUrl} />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">{user.displayName}</p>
@@ -88,7 +88,7 @@ export function Layout() {
 
       <div className="min-w-0 flex-1">
         {/* Mobile header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-sand-line bg-sand-bar/95 px-4 py-3 backdrop-blur lg:hidden">
           <Brand compact />
           {user && <Avatar name={user.displayName} url={user.avatarUrl} className="size-8" />}
         </header>
@@ -99,7 +99,7 @@ export function Layout() {
       </div>
 
       {/* Mobile bottom navigation */}
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 backdrop-blur lg:hidden">
+      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-sand-line bg-sand-bar/95 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-md">
           {primary.map((item) => (
             <NavLink
@@ -109,7 +109,7 @@ export function Layout() {
               className={({ isActive }) =>
                 cn(
                   "flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium",
-                  isActive ? "text-brand-700" : "text-stone-500",
+                  isActive ? "text-brand-800" : "text-stone-600",
                 )
               }
             >
@@ -168,7 +168,7 @@ function SideLink({ item }: { item: NavItem }) {
       className={({ isActive }) =>
         cn(
           "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-          isActive ? "bg-brand-50 text-brand-800" : "text-stone-600 hover:bg-stone-100 hover:text-stone-900",
+          isActive ? "bg-brand-50 text-brand-800" : "text-stone-600 hover:bg-white/60 hover:text-stone-900",
         )
       }
     >

@@ -24,6 +24,11 @@
   --color-mass-700: #946c1a;
   --color-mass-800: #6f5113;
 
+  /* Warm sand for the app's top bar, navigation and page background. */
+  --color-sand-bar: #f2e6cb;
+  --color-sand-line: #e0d0a8;
+  --color-page: #faf5e8;
+
   --color-gold-100: #fef3c7;
   --color-gold-500: #f59e0b;
   --color-gold-600: #d97706;
@@ -34,7 +39,7 @@
     -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-stone-50 text-stone-900 antialiased;
+    @apply bg-page text-stone-900 antialiased;
   }
   /* Arabic text sits better with a little more line height. */
   :where(p, li, td) {
