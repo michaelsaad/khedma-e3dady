@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, onUnauthorized, tokenStore } from "@/lib/api";
+import { PUSH_UI } from "@/lib/features";
 import { detachPush } from "@/lib/push";
 import type { AuthResponse, Role, User } from "@/lib/types";
 
@@ -29,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(() => {
     // Detach this device from the account while the token still works, so the next person doesn't get its pushes.
-    void detachPush();
+    if (PUSH_UI) void detachPush();
     tokenStore.set(null);
     setToken(null);
     queryClient.clear();

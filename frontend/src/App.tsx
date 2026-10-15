@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 import { useAuth } from "@/auth/AuthProvider";
 import { Layout } from "@/components/Layout";
 import { Spinner } from "@/components/ui";
+import { PUSH_UI } from "@/lib/features";
 import type { Role } from "@/lib/types";
 import AttendancePage from "@/pages/AttendancePage";
 import DashboardPage from "@/pages/DashboardPage";
@@ -43,7 +44,7 @@ export default function App() {
         <Route path="transactions" element={<RequireRole role="ADMIN"><TransactionsPage /></RequireRole>} />
         <Route path="settings" element={<RequireRole role="ADMIN"><SettingsPage /></RequireRole>} />
         <Route path="users" element={<RequireRole role="SUPER_ADMIN"><UsersPage /></RequireRole>} />
-        <Route path="notifications" element={<RequireRole role="SUPER_ADMIN"><NotificationsPage /></RequireRole>} />
+        {PUSH_UI && <Route path="notifications" element={<RequireRole role="SUPER_ADMIN"><NotificationsPage /></RequireRole>} />}
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { useAuth } from "@/auth/AuthProvider";
 import { NotificationsToggle } from "@/components/NotificationsToggle";
+import { PUSH_UI } from "@/lib/features";
 import { resyncPush } from "@/lib/push";
 import { roleLabel } from "@/lib/i18n";
 import type { Role } from "@/lib/types";
@@ -39,7 +40,7 @@ const NAV: NavItem[] = [
   { to: "/groups", label: copy.nav.groups, icon: UsersRound, role: "ADMIN" },
   { to: "/transactions", label: copy.nav.history, icon: History, role: "ADMIN" },
   { to: "/users", label: copy.nav.users, icon: ShieldCheck, role: "SUPER_ADMIN" },
-  { to: "/notifications", label: copy.nav.notifications, icon: Bell, role: "SUPER_ADMIN" },
+  ...(PUSH_UI ? [{ to: "/notifications", label: copy.nav.notifications, icon: Bell, role: "SUPER_ADMIN" as const }] : []),
   { to: "/settings", label: copy.nav.settings, icon: Settings, role: "ADMIN" },
 ];
 
@@ -50,7 +51,7 @@ export function Layout() {
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => {
     // Signed in again on a device that had notifications on for this account: reconnect it silently.
-    if (user) void resyncPush(user.id);
+    if (PUSH_UI && user) void resyncPush(user.id);
   }, [user]);
   const items = NAV.filter((item) => hasRole(item.role) && (!item.requiresLink || user?.studentId));
   const primary = items.slice(0, MOBILE_SLOTS);
@@ -66,9 +67,11 @@ export function Layout() {
             <SideLink key={item.to} item={item} />
           ))}
         </nav>
-        <div className="px-3 pb-2">
-          <NotificationsToggle />
-        </div>
+        {PUSH_UI && (
+          <div className="px-3 pb-2">
+            <NotificationsToggle />
+          </div>
+        )}
         {user && (
           <div className="flex items-center gap-3 border-t border-stone-100 p-4">
             <Avatar name={user.displayName} url={user.avatarUrl} />
@@ -139,9 +142,11 @@ export function Layout() {
             </div>
           )}
           {/* The dialog closes on any tap inside it; the toggle keeps it open so its status stays visible. */}
-          <div onClick={(event) => event.stopPropagation()}>
-            <NotificationsToggle />
-          </div>
+          {PUSH_UI && (
+            <div onClick={(event) => event.stopPropagation()}>
+              <NotificationsToggle />
+            </div>
+          )}
           <button
             onClick={signOut}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
