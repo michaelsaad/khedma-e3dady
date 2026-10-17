@@ -128,7 +128,7 @@ export default function LoginPage() {
               )}
             </>
           )}
-          <InfoLinks className="mt-10" />
+          <InfoLinks className="mt-10" credit />
         </div>
       </div>
 

@@ -9,7 +9,15 @@ import { cn } from "@/lib/utils";
 const t = copy.info;
 
 /** About, privacy and contact: public pages, reachable without signing in. */
-function InfoShell({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+function InfoShell({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <div className="min-h-dvh px-4 py-8 sm:py-12">
       <div className="mx-auto w-full max-w-2xl">
@@ -17,44 +25,77 @@ function InfoShell({ icon, title, children }: { icon: ReactNode; title: string; 
           <Link to="/">
             <Brand compact />
           </Link>
-          <Link to="/" className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800"
+          >
             <ArrowRight className="size-4" />
             {t.backToSite}
           </Link>
         </div>
         <Card className="p-6 sm:p-8">
-          <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">{icon}</span>
+          <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
+            {icon}
+          </span>
           <h1 className="mb-4 text-2xl font-bold">{title}</h1>
-          <div className="space-y-6 text-[15px] leading-8 text-stone-700">{children}</div>
+          <div className="space-y-6 text-[15px] leading-8 text-stone-700">
+            {children}
+          </div>
         </Card>
         <InfoLinks className="mt-6" />
-        <p dir="ltr" className="mt-2 text-center text-[11px] text-stone-400">
-          {t.about.builtBy}
-        </p>
       </div>
     </div>
   );
 }
 
-/** The about / privacy / contact links, also shown under the sign-in form. */
-export function InfoLinks({ className }: { className?: string }) {
+/** Same signature line as the Spin & Share game. */
+function Credit() {
+  return (
+    <p
+      dir="ltr"
+      className="mt-2 text-center font-[Segoe_UI,Tahoma,sans-serif] text-xs text-stone-400"
+    >
+      Made with <span className="text-[#e05a6b]">♥</span> by m1kllz
+    </p>
+  );
+}
+
+/**
+ * The about / privacy / contact links. Under the sign-in form they also carry the
+ * credit line, which appears on that page only.
+ */
+export function InfoLinks({
+  className,
+  credit = false,
+}: {
+  className?: string;
+  credit?: boolean;
+}) {
   const links = [
     { to: "/about", label: t.nav.about },
     { to: "/privacy", label: t.nav.privacy },
     { to: "/contact", label: t.nav.contact },
   ];
   return (
-    <nav className={cn("flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-stone-500", className)}>
-      {links.map((link) => (
-        <NavLink
-          key={link.to}
-          to={link.to}
-          className={({ isActive }) => cn("hover:text-brand-700 hover:underline", isActive && "font-semibold text-brand-700")}
-        >
-          {link.label}
-        </NavLink>
-      ))}
-    </nav>
+    <footer className={className}>
+      <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-stone-500">
+        {links.map((link) => (
+          <NavLink
+            key={link.to}
+            to={link.to}
+            className={({ isActive }) =>
+              cn(
+                "hover:text-brand-700 hover:underline",
+                isActive && "font-semibold text-brand-700",
+              )
+            }
+          >
+            {link.label}
+          </NavLink>
+        ))}
+      </nav>
+      {credit && <Credit />}
+    </footer>
   );
 }
 
@@ -79,7 +120,11 @@ function Bullets({ items }: { items: readonly string[] }) {
 
 function EmailLink() {
   return (
-    <a href={`mailto:${t.contactEmail}`} dir="ltr" className="font-medium text-brand-700 hover:underline">
+    <a
+      href={`mailto:${t.contactEmail}`}
+      dir="ltr"
+      className="font-medium text-brand-700 hover:underline"
+    >
       {t.contactEmail}
     </a>
   );
@@ -92,9 +137,16 @@ export function AboutPage() {
       <Section title={t.about.featuresTitle}>
         <Bullets items={t.about.features} />
       </Section>
-      <div dir="ltr" className="rounded-2xl border border-brand-100 bg-brand-50/60 px-5 py-4 text-center">
-        <p className="text-[11px] font-semibold tracking-[0.2em] text-brand-700 uppercase">{t.about.builtTitle}</p>
-        <p className="mt-1 text-base font-semibold text-stone-900">{t.about.builtBy}</p>
+      <div
+        dir="ltr"
+        className="rounded-2xl border border-brand-100 bg-brand-50/60 px-5 py-4 text-center"
+      >
+        <p className="text-[11px] font-semibold tracking-[0.2em] text-brand-700 uppercase">
+          {t.about.builtTitle}
+        </p>
+        <p className="mt-1 text-base font-semibold text-stone-900">
+          {t.about.builtBy}
+        </p>
         <div className="mt-1 text-sm">
           <EmailLink />
         </div>
@@ -105,7 +157,10 @@ export function AboutPage() {
 
 export function PrivacyPage() {
   return (
-    <InfoShell icon={<ShieldCheck className="size-6" />} title={t.privacy.title}>
+    <InfoShell
+      icon={<ShieldCheck className="size-6" />}
+      title={t.privacy.title}
+    >
       <p>{t.privacy.intro}</p>
       {t.privacy.sections.map((section) => (
         <Section key={section.title} title={section.title}>
