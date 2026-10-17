@@ -44,11 +44,30 @@ app:
     ttl: 10m
     resend-cooldown: 60s
     max-attempts: 5
+    # Survive new codes: caps how many codes an account can be sent and how many wrong guesses it gets.
+    max-sends-per-day: 10
+    max-failures-per-hour: 10
   mail:
     from: ${MAIL_FROM:no-reply@khedma.local}
     # Brevo transactional email API (HTTPS). When set, it is used instead of SMTP.
     brevo-api-key: ${BREVO_API_KEY:}
     brevo-base-url: https://api.brevo.com
+    # Where the one-tap links in code emails point. Empty = the first CORS origin.
+    app-url: ${APP_URL:}
+  rate-limit:
+    enabled: true
+    # Requests per client IP to the public /api/auth endpoints.
+    auth-requests-per-ip: 40
+    auth-window: 10m
+    # Wrong passwords per email before sign-in is paused for that account.
+    login-failures-per-email: 8
+    login-window: 15m
+  two-factor:
+    enabled: ${TWO_FACTOR_ENABLED:true}
+    # Time to type the emailed code after the password was accepted.
+    challenge-ttl: 15m
+    # A browser that passed the code skips it for this long.
+    trusted-device-ttl: 30d
   # Comma-separated. Verified sign-ins with these emails become SUPER_ADMIN + APPROVED.
   super-admin-emails: ${SUPER_ADMIN_EMAILS:}
   cors:

@@ -4,6 +4,7 @@ import {
   History,
   LayoutDashboard,
   LogOut,
+  MonitorX,
   MoreHorizontal,
   Settings,
   ShieldCheck,
@@ -15,10 +16,11 @@ import {
 import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { useAuth } from "@/auth/AuthProvider";
+import { toast } from "sonner";
 import { NotificationsToggle } from "@/components/NotificationsToggle";
 import { PUSH_UI } from "@/lib/features";
 import { resyncPush } from "@/lib/push";
-import { roleLabel } from "@/lib/i18n";
+import { errorMessage, roleLabel } from "@/lib/i18n";
 import type { Role } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Avatar, Button, Dialog } from "./ui";
@@ -47,7 +49,11 @@ const NAV: NavItem[] = [
 const MOBILE_SLOTS = 4;
 
 export function Layout() {
-  const { user, hasRole, signOut } = useAuth();
+  const { user, hasRole, signOut, signOutEverywhere } = useAuth();
+  const endAllSessions = () => {
+    if (!window.confirm(copy.login.signOutEverywhereConfirm)) return;
+    signOutEverywhere().catch((error) => toast.error(errorMessage(error)));
+  };
   const [moreOpen, setMoreOpen] = useState(false);
   useEffect(() => {
     // Signed in again on a device that had notifications on for this account: reconnect it silently.
@@ -79,6 +85,9 @@ export function Layout() {
               <p className="truncate text-sm font-semibold">{user.displayName}</p>
               <p className="text-xs text-stone-500">{roleLabel[user.role]}</p>
             </div>
+            <Button variant="ghost" size="icon" onClick={endAllSessions} aria-label={copy.login.signOutEverywhere} title={copy.login.signOutEverywhere}>
+              <MonitorX className="size-4" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={signOut} aria-label={copy.nav.signOut} title={copy.nav.signOut}>
               <LogOut className="size-4" />
             </Button>
@@ -147,6 +156,13 @@ export function Layout() {
               <NotificationsToggle />
             </div>
           )}
+          <button
+            onClick={endAllSessions}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-600 hover:bg-stone-50"
+          >
+            <MonitorX className="size-5" />
+            {copy.login.signOutEverywhere}
+          </button>
           <button
             onClick={signOut}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"

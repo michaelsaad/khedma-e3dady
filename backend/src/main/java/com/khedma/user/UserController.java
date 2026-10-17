@@ -4,13 +4,17 @@ import java.util.List;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.khedma.auth.AuthService;
 import com.khedma.auth.AuthUser;
 import com.khedma.user.UserDtos.LinkStudentRequest;
 import com.khedma.user.UserDtos.UpdateUserRequest;
@@ -20,15 +24,24 @@ import com.khedma.user.UserDtos.UpdateUserRequest;
 public class UserController {
 
     private final UserService userService;
+    private final AuthService authService;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, AuthService authService) {
         this.userService = userService;
+        this.authService = authService;
     }
 
     /** Available to any signed-in account, including PENDING ones (to show the waiting screen). */
     @GetMapping("/me")
     public UserResponse me(@AuthenticationPrincipal AuthUser user) {
         return userService.me(user.id());
+    }
+
+    /** Signs the account out on every device, including this one, and forgets trusted browsers. */
+    @PostMapping("/me/sign-out-everywhere")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void signOutEverywhere(@AuthenticationPrincipal AuthUser user) {
+        authService.signOutEverywhere(user.id());
     }
 
     // ---- SUPER_ADMIN only (see SecurityConfig) ----

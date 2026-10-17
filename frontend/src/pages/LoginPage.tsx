@@ -1,23 +1,54 @@
 import { useMutation } from "@tanstack/react-query";
-import { ArrowRight, KeyRound, MailCheck } from "lucide-react";
+import { ArrowRight, KeyRound, MailCheck, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/auth/AuthProvider";
 import { GoogleButton, googleEnabled } from "@/auth/GoogleButton";
 import { Brand } from "@/components/Layout";
+import { CodeInput } from "@/components/CodeInput";
 import { Button, Field, Input, Segmented } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
 import { errorMessage, fieldErrors } from "@/lib/i18n";
-import type { AuthResponse, RegistrationResponse } from "@/lib/types";
+import { challengeStore, deviceStore, takeCodeLink, type CodeLink } from "@/lib/device";
+import type { AuthResponse, LoginChallenge, RegistrationResponse } from "@/lib/types";
 import { copy } from "@/lib/copy";
 
 type Mode = "signin" | "register";
 
+// Read once per page load (StrictMode renders twice, and the hash is cleared on the first read).
+let pendingLink: CodeLink | null | undefined;
+function codeLinkOnce() {
+  if (pendingLink === undefined) pendingLink = takeCodeLink();
+  return pendingLink;
+}
+
 export default function LoginPage() {
   const { signIn } = useAuth();
+  const [link] = useState(codeLinkOnce);
+  const [linkChallenge] = useState(() => (link?.flow === "login" ? challengeStore.get(link.email) : null));
   const [mode, setMode] = useState<Mode>("signin");
-  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
-  const [forgotEmail, setForgotEmail] = useState<string | null>(null);
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(link?.flow === "verify" ? link.email : null);
+  const [forgotEmail, setForgotEmail] = useState<string | null>(link?.flow === "reset" ? link.email : null);
+  const [challenge, setChallenge] = useState<LoginChallenge | null>(linkChallenge);
+
+  useEffect(() => {
+    // The email link opened in a tab that already shows this page: only the hash changed, so start over.
+    const onHashChange = () => {
+      if (window.location.hash.startsWith("#otp=")) window.location.reload();
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  useEffect(() => {
+    pendingLink = null; // used up: coming back to this page later starts clean
+    if (link?.flow === "login" && !linkChallenge) toast.info(copy.login.linkOtherBrowser);
+  }, [link, linkChallenge]);
+
+  const startChallenge = (next: LoginChallenge) => {
+    challengeStore.set(next);
+    setChallenge(next);
+  };
 
   const google = useMutation({
     mutationFn: (idToken: string) => api.post<AuthResponse>("/auth/google", { idToken }),
@@ -33,10 +64,30 @@ export default function LoginPage() {
             <Brand large />
           </div>
 
-          {forgotEmail !== null ? (
-            <ForgotPassword initialEmail={forgotEmail} onBack={() => setForgotEmail(null)} onReset={signIn} />
+          {challenge ? (
+            <LoginCodeStep
+              challenge={challenge}
+              initialCode={linkChallenge === challenge ? link?.code : undefined}
+              onBack={() => {
+                challengeStore.set(null);
+                setChallenge(null);
+              }}
+              onVerified={signIn}
+            />
+          ) : forgotEmail !== null ? (
+            <ForgotPassword
+              initialEmail={forgotEmail}
+              initialCode={link?.flow === "reset" ? link.code : undefined}
+              onBack={() => setForgotEmail(null)}
+              onReset={signIn}
+            />
           ) : verifyEmail ? (
-            <VerifyStep email={verifyEmail} onBack={() => setVerifyEmail(null)} onVerified={signIn} />
+            <VerifyStep
+              email={verifyEmail}
+              initialCode={link?.flow === "verify" && link.email === verifyEmail ? link.code : undefined}
+              onBack={() => setVerifyEmail(null)}
+              onVerified={signIn}
+            />
           ) : (
             <>
               <h1 className="text-2xl font-bold">{mode === "signin" ? copy.login.welcomeBack : copy.login.newAccount}</h1>
@@ -64,7 +115,13 @@ export default function LoginPage() {
               />
 
               {mode === "signin" ? (
-                <SignInForm onSignedIn={signIn} onNeedsVerification={setVerifyEmail} onForgot={setForgotEmail} />
+                <SignInForm
+                  initialEmail={link?.flow === "login" ? link.email : ""}
+                  onSignedIn={signIn}
+                  onChallenge={startChallenge}
+                  onNeedsVerification={setVerifyEmail}
+                  onForgot={setForgotEmail}
+                />
               ) : (
                 <RegisterForm onRegistered={setVerifyEmail} />
               )}
@@ -88,20 +145,25 @@ export default function LoginPage() {
 }
 
 function SignInForm({
+  initialEmail,
   onSignedIn,
+  onChallenge,
   onNeedsVerification,
   onForgot,
 }: {
+  initialEmail: string;
   onSignedIn: (response: AuthResponse) => void;
+  onChallenge: (challenge: LoginChallenge) => void;
   onNeedsVerification: (email: string) => void;
   onForgot: (email: string) => void;
 }) {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
 
   const login = useMutation({
-    mutationFn: () => api.post<AuthResponse>("/auth/login", { email, password }),
-    onSuccess: onSignedIn,
+    mutationFn: () =>
+      api.post<AuthResponse | LoginChallenge>("/auth/login", { email, password, deviceToken: deviceStore.get(email) }),
+    onSuccess: (result) => ("challengeToken" in result ? onChallenge(result) : onSignedIn(result)),
     onError: async (error) => {
       if (error instanceof ApiError && error.code === "EMAIL_NOT_VERIFIED") {
         await api.post("/auth/resend-code", { email }).catch(() => undefined);
@@ -195,14 +257,16 @@ function RegisterForm({ onRegistered }: { onRegistered: (email: string) => void 
 
 function VerifyStep({
   email,
+  initialCode,
   onBack,
   onVerified,
 }: {
   email: string;
+  initialCode?: string;
   onBack: () => void;
   onVerified: (response: AuthResponse) => void;
 }) {
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(initialCode ?? "");
   const [cooldown, setCooldown] = useState(60);
   const input = useRef<HTMLInputElement>(null);
 
@@ -230,11 +294,7 @@ function VerifyStep({
     onError: (error) => toast.error(errorMessage(error)),
   });
 
-  const onChange = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 6);
-    setCode(digits);
-    if (digits.length === 6) verify.mutate(digits);
-  };
+  useAutoSubmit(initialCode, verify.mutate);
 
   return (
     <div>
@@ -252,17 +312,7 @@ function VerifyStep({
           {email}
         </span>
       </p>
-      <Input
-        ref={input}
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        dir="ltr"
-        placeholder="••••••"
-        value={code}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={verify.isPending}
-        className="h-14 text-center text-2xl font-semibold tracking-[0.6em] tabular"
-      />
+      <CodeInput ref={input} value={code} onChange={setCode} onComplete={verify.mutate} disabled={verify.isPending} />
       <Button size="lg" className="mt-4 w-full" loading={verify.isPending} disabled={code.length !== 6} onClick={() => verify.mutate(code)}>
         {copy.login.verify}
       </Button>
@@ -283,16 +333,18 @@ function VerifyStep({
 /** Two steps: ask for the email, then the emailed code + a new password (signs the user in). */
 function ForgotPassword({
   initialEmail,
+  initialCode,
   onBack,
   onReset,
 }: {
   initialEmail: string;
+  initialCode?: string;
   onBack: () => void;
   onReset: (response: AuthResponse) => void;
 }) {
   const [email, setEmail] = useState(initialEmail);
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [code, setCode] = useState("");
+  const [sentTo, setSentTo] = useState<string | null>(initialCode ? initialEmail : null);
+  const [code, setCode] = useState(initialCode ?? "");
   const [password, setPassword] = useState("");
   const [cooldown, setCooldown] = useState(0);
 
@@ -368,17 +420,7 @@ function ForgotPassword({
             {copy.login.resetSentHint}
           </p>
           <Field label={copy.login.code} error={errors.code}>
-            <Input
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              dir="ltr"
-              placeholder="••••••"
-              required
-              autoFocus
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="h-12 text-center text-xl font-semibold tracking-[0.5em] tabular"
-            />
+            <CodeInput size="md" autoFocus={!initialCode} value={code} onChange={setCode} />
           </Field>
           <Field label={copy.login.newPassword} error={errors.newPassword} hint={copy.login.passwordHint}>
             <Input
@@ -387,6 +429,7 @@ function ForgotPassword({
               autoComplete="new-password"
               required
               minLength={8}
+              autoFocus={Boolean(initialCode)}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -408,4 +451,93 @@ function ForgotPassword({
       )}
     </div>
   );
+}
+
+/** Second step of an email/password sign-in on a browser that isn't trusted yet. */
+function LoginCodeStep({
+  challenge,
+  initialCode,
+  onBack,
+  onVerified,
+}: {
+  challenge: LoginChallenge;
+  initialCode?: string;
+  onBack: () => void;
+  onVerified: (response: AuthResponse) => void;
+}) {
+  const [code, setCode] = useState(initialCode ?? "");
+  const [cooldown, setCooldown] = useState(60);
+  const input = useRef<HTMLInputElement>(null);
+
+  useEffect(() => input.current?.focus(), []);
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  const verify = useMutation({
+    mutationFn: (value: string) =>
+      api.post<AuthResponse>("/auth/login/verify", { challengeToken: challenge.challengeToken, code: value }),
+    onSuccess: onVerified,
+    onError: (error) => {
+      toast.error(errorMessage(error));
+      setCode("");
+      if (error instanceof ApiError && error.code === "LOGIN_CHALLENGE_INVALID") onBack();
+    },
+  });
+  const resend = useMutation({
+    mutationFn: () => api.post("/auth/login/resend", { challengeToken: challenge.challengeToken }),
+    onSuccess: () => {
+      toast.success(copy.login.newCodeSent);
+      setCooldown(60);
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+
+  useAutoSubmit(initialCode, verify.mutate);
+
+  return (
+    <div>
+      <button onClick={onBack} className="mb-6 inline-flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800">
+        <ArrowRight className="size-4" />
+        {copy.login.backToSignIn}
+      </button>
+      <span className="mb-4 grid size-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
+        <ShieldCheck className="size-6" />
+      </span>
+      <h1 className="text-2xl font-bold">{copy.login.loginCodeTitle}</h1>
+      <p className="mt-1 mb-6 text-sm text-stone-500">
+        {copy.login.loginCodeSentTo}{" "}
+        <span dir="ltr" className="font-medium text-stone-800">
+          {challenge.email}
+        </span>
+      </p>
+      <CodeInput ref={input} value={code} onChange={setCode} onComplete={verify.mutate} disabled={verify.isPending} />
+      <Button size="lg" className="mt-4 w-full" loading={verify.isPending} disabled={code.length !== 6} onClick={() => verify.mutate(code)}>
+        {copy.login.verify}
+      </Button>
+      <p className="mt-3 text-center text-xs text-stone-500">{copy.login.loginCodeHint}</p>
+      <p className="mt-5 text-center text-sm text-stone-500">
+        {copy.login.codeNotArrived}{" "}
+        {cooldown > 0 ? (
+          <span className="tabular">{copy.login.resendIn(cooldown)}</span>
+        ) : (
+          <button className="font-medium text-brand-700 hover:underline" onClick={() => resend.mutate()} disabled={resend.isPending}>
+            {copy.login.resend}
+          </button>
+        )}
+      </p>
+    </div>
+  );
+}
+
+/** A code that arrived through the email link is submitted once, as if it had been typed. */
+function useAutoSubmit(initialCode: string | undefined, submit: (code: string) => void) {
+  const done = useRef(false);
+  useEffect(() => {
+    if (done.current || !initialCode || initialCode.length !== 6) return;
+    done.current = true;
+    submit(initialCode);
+  }, [initialCode, submit]);
 }

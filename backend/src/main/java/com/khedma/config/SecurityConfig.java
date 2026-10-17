@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**", "/api/health", "/api/push/config").permitAll()
                         // Pending/rejected users can still read their own account status.
-                        .requestMatchers("/api/me").authenticated()
+                        .requestMatchers("/api/me", "/api/me/sign-out-everywhere").authenticated()
                         // Any approved account (USER and up).
                         .requestMatchers("/api/dashboard/**").hasRole("USER")
                         // Any approved account can turn notifications on for its own devices.

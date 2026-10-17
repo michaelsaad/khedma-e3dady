@@ -45,7 +45,11 @@ public class TestcontainersConfig {
     /** Scheduled jobs are triggered by hand in tests so they never fire on the real wall clock. */
     @Bean
     DynamicPropertyRegistrar schedulerOff() {
-        return registry -> registry.add("app.push.scheduler-enabled", () -> "false");
+        return registry -> {
+            registry.add("app.push.scheduler-enabled", () -> "false");
+            // Every test signs in from 127.0.0.1 with a frozen clock; the IP budget is tested on its own.
+            registry.add("app.rate-limit.auth-requests-per-ip", () -> "100000");
+        };
     }
 
     /** Records every push instead of calling a real push service. */

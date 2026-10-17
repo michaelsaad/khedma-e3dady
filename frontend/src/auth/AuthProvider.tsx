@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, onUnauthorized, tokenStore } from "@/lib/api";
+import { challengeStore, deviceStore } from "@/lib/device";
 import { PUSH_UI } from "@/lib/features";
 import { detachPush } from "@/lib/push";
 import type { AuthResponse, Role, User } from "@/lib/types";
@@ -10,6 +11,7 @@ interface AuthState {
   loading: boolean;
   signIn: (response: AuthResponse) => void;
   signOut: () => void;
+  signOutEverywhere: () => Promise<void>;
   hasRole: (role: Role) => boolean;
 }
 
@@ -39,11 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = useCallback(
     (response: AuthResponse) => {
       tokenStore.set(response.accessToken);
+      if (response.deviceToken) deviceStore.set(response.user.email, response.deviceToken);
+      challengeStore.set(null);
       queryClient.setQueryData(["me", response.accessToken], response.user);
       setToken(response.accessToken);
     },
     [queryClient],
   );
+
+  const signOutEverywhere = useCallback(async () => {
+    const email = me.data?.email;
+    await api.post("/me/sign-out-everywhere");
+    if (email) deviceStore.forget(email);
+    signOut();
+  }, [me.data?.email, signOut]);
 
   useEffect(() => onUnauthorized(signOut), [signOut]);
 
@@ -54,9 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading: Boolean(token) && me.isPending,
       signIn,
       signOut,
+      signOutEverywhere,
       hasRole: (role) => Boolean(user && user.status === "APPROVED" && RANK[user.role] >= RANK[role]),
     };
-  }, [token, me.data, me.isPending, signIn, signOut]);
+  }, [token, me.data, me.isPending, signIn, signOut, signOutEverywhere]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

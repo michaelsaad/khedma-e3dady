@@ -1,5 +1,6 @@
 package com.khedma.auth.otp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
@@ -32,8 +33,8 @@ class EmailSenderTest {
     private EmailSender sender(String apiKey) {
         AppProperties properties = new AppProperties(
                 ZoneId.of("Africa/Cairo"), null, null, null,
-                new AppProperties.Mail("sender@test.local", apiKey, "https://brevo.test"),
-                List.of(), null, null);
+                new AppProperties.Mail("sender@test.local", apiKey, "https://brevo.test", "https://app.test/"),
+                List.of(), null, null, null, null);
         return new EmailSender(new StaticListableBeanFactory().getBeanProvider(JavaMailSender.class), properties, http);
     }
 
@@ -45,10 +46,24 @@ class EmailSenderTest {
                 .andExpect(jsonPath("$.sender.email").value("sender@test.local"))
                 .andExpect(jsonPath("$.to[0].email").value("user@test.local"))
                 .andExpect(jsonPath("$.textContent").value(containsString("123456")))
+                .andExpect(jsonPath("$.htmlContent").value(containsString("123456")))
+                .andExpect(jsonPath("$.subject").value(containsString("123456")))
                 .andRespond(withStatus(HttpStatus.CREATED));
 
         sender("test-key").sendCode("user@test.local", "User", "123456", Duration.ofMinutes(10), CodePurpose.VERIFY_EMAIL);
         brevo.verify();
+    }
+
+    @Test
+    void linkCarriesTheCodeInTheFragmentOnly() {
+        assertThat(sender("").link("a+b@test.local", "123456", CodePurpose.LOGIN))
+                .isEqualTo("https://app.test/login#otp=123456&flow=login&email=a%2Bb%40test.local");
+    }
+
+    @Test
+    void htmlEscapesTheDisplayName() {
+        String html = sender("").html("<script>x</script>", "123456", Duration.ofMinutes(10), CodePurpose.VERIFY_EMAIL, "https://app.test/login");
+        assertThat(html).doesNotContain("<script>x").contains("&lt;script&gt;x");
     }
 
     @Test

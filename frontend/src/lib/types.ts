@@ -60,6 +60,15 @@ export interface AuthResponse {
   accessToken: string;
   expiresAt: string;
   user: User;
+  /** Set when this sign-in proved the inbox; kept per account so this browser skips the emailed code. */
+  deviceToken?: string;
+}
+
+/** Password accepted on a browser that is not trusted yet: a code was emailed (HTTP 202). */
+export interface LoginChallenge {
+  challengeToken: string;
+  email: string;
+  expiresAt: string;
 }
 
 export interface RegistrationResponse {

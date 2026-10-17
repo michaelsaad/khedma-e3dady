@@ -6,6 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -19,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.khedma.TestcontainersConfig;
 import com.khedma.TestcontainersConfig.CapturingEmailSender;
 import com.khedma.auth.otp.CodePurpose;
+import com.khedma.auth.otp.EmailVerificationCodeRepository;
 import com.khedma.user.Role;
 import com.khedma.user.UserRepository;
 import com.khedma.user.UserStatus;
@@ -34,6 +38,7 @@ class AuthFlowTest {
     @Autowired ObjectMapper json;
     @Autowired UserRepository users;
     @Autowired CapturingEmailSender emails;
+    @Autowired EmailVerificationCodeRepository codes;
 
     @Test
     void registrationRequiresEmailVerificationBeforeLogin() throws Exception {
@@ -45,12 +50,15 @@ class AuthFlowTest {
         verify("new@test.local", wrongCode("new@test.local")).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"));
 
-        String token = token(verify("new@test.local", emails.lastCode("new@test.local")).andExpect(status().isOk()));
+        ResultActions verified = verify("new@test.local", emails.lastCode("new@test.local")).andExpect(status().isOk());
+        String token = token(verified);
         mvc.perform(get("/api/me").header("Authorization", "Bearer " + token))
                 .andExpect(jsonPath("$.emailVerified").value(true))
                 .andExpect(jsonPath("$.status").value("PENDING"));
 
-        login("new@test.local").andExpect(status().isOk());
+        // The browser that just proved the inbox is trusted; any other one gets the emailed code step.
+        login("new@test.local", PASSWORD, field(verified, "deviceToken")).andExpect(status().isOk());
+        login("new@test.local").andExpect(status().isAccepted());
         register("new@test.local").andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_REGISTERED"));
     }
@@ -148,9 +156,7 @@ class AuthFlowTest {
                 .andExpect(jsonPath("$.accessToken").isNotEmpty());
 
         login("forgot@test.local").andExpect(status().isUnauthorized()); // old password is gone
-        mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"forgot@test.local\",\"password\":\"brand-new-pass\"}"))
-                .andExpect(status().isOk());
+        login("forgot@test.local", "brand-new-pass", null).andExpect(status().isAccepted());
         // A used code can't be replayed.
         reset("forgot@test.local", emails.lastCode("forgot@test.local"), "another-pass-1")
                 .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"));
@@ -177,6 +183,112 @@ class AuthFlowTest {
                 .andExpect(jsonPath("$.user.role").value("ADMIN"))
                 .andExpect(jsonPath("$.user.status").value("APPROVED"))
                 .andExpect(jsonPath("$.user.emailVerified").value(true));
+    }
+
+    @Test
+    void signInFromANewBrowserNeedsTheEmailedCode() throws Exception {
+        verifiedToken("twofa@test.local");
+
+        ResultActions first = login("twofa@test.local").andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
+                .andExpect(jsonPath("$.email").value("twofa@test.local"));
+        String challenge = field(first, "challengeToken");
+        assertThat(emails.lastPurpose("twofa@test.local")).isEqualTo(CodePurpose.LOGIN);
+
+        // The challenge is not an access token.
+        mvc.perform(get("/api/me").header("Authorization", "Bearer " + challenge)).andExpect(status().isUnauthorized());
+
+        loginCode(challenge, wrongCode("twofa@test.local")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"));
+        ResultActions second = loginCode(challenge, emails.lastCode("twofa@test.local")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
+        String device = field(second, "deviceToken");
+
+        login("twofa@test.local", PASSWORD, device).andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty());
+        login("twofa@test.local", PASSWORD, "made-up-device").andExpect(status().isAccepted());
+    }
+
+    @Test
+    void aCodeOnlyWorksForTheFlowItWasSentFor() throws Exception {
+        verifiedToken("purpose@test.local");
+        String challenge = field(login("purpose@test.local").andExpect(status().isAccepted()), "challengeToken");
+        String loginCode = emails.lastCode("purpose@test.local");
+
+        reset("purpose@test.local", loginCode, "brand-new-pass").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"));
+        loginCode(challenge, loginCode).andExpect(status().isOk());
+    }
+
+    @Test
+    void newCodesDoNotGiveMoreGuesses() throws Exception {
+        register("guesser@test.local");
+        String wrong = wrongCode("guesser@test.local");
+        for (int i = 0; i < 5; i++) verify("guesser@test.local", wrong);
+
+        rewindCooldown("guesser@test.local");
+        resend("guesser@test.local").andExpect(status().isAccepted());
+        String fresh = emails.lastCode("guesser@test.local");
+        String wrongAgain = fresh.equals("000000") ? "111111" : "000000";
+        for (int i = 0; i < 5; i++) {
+            verify("guesser@test.local", wrongAgain).andExpect(jsonPath("$.code").value("INVALID_VERIFICATION_CODE"));
+        }
+        // Ten wrong guesses this hour: even the right code is refused until the hour is over.
+        verify("guesser@test.local", fresh).andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("TOO_MANY_ATTEMPTS"));
+    }
+
+    @Test
+    void anAccountGetsAtMostTenCodesADay() throws Exception {
+        register("spam@test.local");
+        for (int i = 1; i < 10; i++) {
+            rewindCooldown("spam@test.local");
+            resend("spam@test.local").andExpect(status().isAccepted());
+        }
+        rewindCooldown("spam@test.local");
+        resend("spam@test.local").andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("TOO_MANY_CODES"));
+    }
+
+    @Test
+    void resettingThePasswordSignsOutOtherSessions() throws Exception {
+        String oldToken = verifiedToken("revoke@test.local");
+        mvc.perform(get("/api/me").header("Authorization", "Bearer " + oldToken)).andExpect(status().isOk());
+
+        forgot("revoke@test.local").andExpect(status().isAccepted());
+        String newToken = token(reset("revoke@test.local", emails.lastCode("revoke@test.local"), "brand-new-pass")
+                .andExpect(status().isOk()));
+
+        mvc.perform(get("/api/me").header("Authorization", "Bearer " + oldToken)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/me").header("Authorization", "Bearer " + newToken)).andExpect(status().isOk());
+    }
+
+    @Test
+    void signOutEverywhereRevokesTokensAndTrustedBrowsers() throws Exception {
+        register("everywhere@test.local");
+        ResultActions verified = verify("everywhere@test.local", emails.lastCode("everywhere@test.local"));
+        String token = token(verified);
+
+        mvc.perform(post("/api/me/sign-out-everywhere").header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+        mvc.perform(get("/api/me").header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
+        login("everywhere@test.local", PASSWORD, field(verified, "deviceToken")).andExpect(status().isAccepted());
+    }
+
+    @Test
+    void repeatedWrongPasswordsPauseSignInForThatEmail() throws Exception {
+        verifiedToken("locked@test.local");
+        for (int i = 0; i < 8; i++) {
+            login("locked@test.local", "wrong-password", null).andExpect(status().isUnauthorized());
+        }
+        login("locked@test.local").andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.code").value("RATE_LIMITED"));
+    }
+
+    @Test
+    void unknownEmailGetsTheSameAnswerAsAWrongPassword() throws Exception {
+        login("ghost@test.local", PASSWORD, null).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
     }
 
     // ---- helpers --------------------------------------------------------------------------
@@ -214,8 +326,34 @@ class AuthFlowTest {
     }
 
     private ResultActions login(String email) throws Exception {
-        return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"" + email + "\",\"password\":\"" + PASSWORD + "\"}"));
+        return login(email, PASSWORD, null);
+    }
+
+    private ResultActions login(String email, String password, String deviceToken) throws Exception {
+        Map<String, String> body = new HashMap<>();
+        body.put("email", email);
+        body.put("password", password);
+        if (deviceToken != null) body.put("deviceToken", deviceToken);
+        return mvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(body)));
+    }
+
+    private ResultActions loginCode(String challenge, String code) throws Exception {
+        return mvc.perform(post("/api/auth/login/verify").contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("challengeToken", challenge, "code", code))));
+    }
+
+    private ResultActions resend(String email) throws Exception {
+        return mvc.perform(post("/api/auth/resend-code").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + email + "\"}"));
+    }
+
+    /** The test clock is frozen, so step past the 60s resend cooldown by moving the last send back. */
+    private void rewindCooldown(String email) {
+        Long id = users.findByEmail(email).orElseThrow().getId();
+        codes.findById(id).ifPresent(code -> {
+            code.setLastSentAt(code.getLastSentAt().minusSeconds(120));
+            codes.save(code);
+        });
     }
 
     private String wrongCode(String email) {
@@ -223,6 +361,10 @@ class AuthFlowTest {
     }
 
     private String token(ResultActions result) throws Exception {
-        return json.readTree(result.andReturn().getResponse().getContentAsString()).get("accessToken").asText();
+        return field(result, "accessToken");
+    }
+
+    private String field(ResultActions result, String name) throws Exception {
+        return json.readTree(result.andReturn().getResponse().getContentAsString()).get(name).asText();
     }
 }

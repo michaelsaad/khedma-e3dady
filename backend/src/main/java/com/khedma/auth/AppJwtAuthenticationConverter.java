@@ -29,6 +29,10 @@ public class AppJwtAuthenticationConverter implements Converter<Jwt, AbstractAut
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
+        if (jwt.getClaims().containsKey(JwtService.TYPE_CLAIM)) {
+            // A sign-in challenge (password checked, emailed code not yet) is not an access token.
+            throw new InvalidBearerTokenException("Not an access token");
+        }
         Long userId;
         try {
             userId = Long.valueOf(jwt.getSubject());
@@ -37,6 +41,9 @@ public class AppJwtAuthenticationConverter implements Converter<Jwt, AbstractAut
         }
         AppUser user = users.findById(userId)
                 .orElseThrow(() -> new InvalidBearerTokenException("Unknown user"));
+        if (JwtService.versionOf(jwt) != user.getTokenVersion()) {
+            throw new InvalidBearerTokenException("Token was revoked");
+        }
 
         List<GrantedAuthority> authorities = user.isApproved()
                 ? user.getRole().impliedRoles().stream()

@@ -18,7 +18,9 @@ public record AppProperties(
         Mail mail,
         List<String> superAdminEmails,
         Cors cors,
-        Push push) {
+        Push push,
+        RateLimit rateLimit,
+        TwoFactor twoFactor) {
 
     public record Jwt(String secret, Duration ttl) {}
 
@@ -28,9 +30,17 @@ public record AppProperties(
         }
     }
 
-    public record Otp(Duration ttl, Duration resendCooldown, int maxAttempts) {}
+    public record Otp(Duration ttl, Duration resendCooldown, int maxAttempts, int maxSendsPerDay, int maxFailuresPerHour) {}
 
-    public record Mail(String from, String brevoApiKey, String brevoBaseUrl) {
+    /** Per-client-IP request budget for the public /api/auth endpoints, and failed sign-ins per email. */
+    public record RateLimit(boolean enabled, int authRequestsPerIp, Duration authWindow,
+                            int loginFailuresPerEmail, Duration loginWindow) {}
+
+    /** Email/password sign-ins from a browser that is not trusted yet must confirm an emailed code. */
+    public record TwoFactor(boolean enabled, Duration challengeTtl, Duration trustedDeviceTtl) {}
+
+    /** {@code appUrl} is where the one-tap links in emails point; defaults to the first CORS origin. */
+    public record Mail(String from, String brevoApiKey, String brevoBaseUrl, String appUrl) {
         public boolean brevoEnabled() {
             return brevoApiKey != null && !brevoApiKey.isBlank();
         }
@@ -51,6 +61,17 @@ public record AppProperties(
         private static boolean notBlank(String value) {
             return value != null && !value.isBlank();
         }
+    }
+
+    /** Public address of the web app, without a trailing slash. */
+    public String appUrl() {
+        String url = mail.appUrl();
+        if ((url == null || url.isBlank()) && cors != null && cors.allowedOrigins() != null && !cors.allowedOrigins().isEmpty()) {
+            url = cors.allowedOrigins().get(0);
+        }
+        if (url == null || url.isBlank()) url = "http://localhost:3000";
+        url = url.trim();
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
     }
 
     public Set<String> normalizedSuperAdminEmails() {

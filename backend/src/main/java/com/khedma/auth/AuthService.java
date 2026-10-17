@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.khedma.auth.AuthDtos.AuthResponse;
+import com.khedma.auth.AuthDtos.LoginChallenge;
 import com.khedma.auth.AuthDtos.LoginRequest;
 import com.khedma.auth.AuthDtos.RegisterRequest;
 import com.khedma.auth.AuthDtos.RegistrationResponse;
@@ -18,6 +19,7 @@ import com.khedma.auth.otp.OtpService;
 import com.khedma.common.ApiException;
 import com.khedma.common.ErrorCode;
 import com.khedma.config.AppProperties;
+import com.khedma.security.RateLimiter;
 import com.khedma.user.AppUser;
 import com.khedma.user.Role;
 import com.khedma.user.UserRepository;
@@ -32,19 +34,26 @@ public class AuthService {
     private final JwtService jwtService;
     private final GoogleTokenVerifier googleVerifier;
     private final OtpService otpService;
+    private final TrustedDeviceService trustedDevices;
+    private final RateLimiter limiter;
     private final AppProperties properties;
     private final Clock clock;
+    /** Compared against when the email is unknown, so a wrong email takes as long as a wrong password. */
+    private final String dummyHash;
 
     public AuthService(UserRepository users, PasswordEncoder passwordEncoder, JwtService jwtService,
-                       GoogleTokenVerifier googleVerifier, OtpService otpService,
-                       AppProperties properties, Clock clock) {
+                       GoogleTokenVerifier googleVerifier, OtpService otpService, TrustedDeviceService trustedDevices,
+                       RateLimiter limiter, AppProperties properties, Clock clock) {
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.googleVerifier = googleVerifier;
         this.otpService = otpService;
+        this.trustedDevices = trustedDevices;
+        this.limiter = limiter;
         this.properties = properties;
         this.clock = clock;
+        this.dummyHash = passwordEncoder.encode("timing-equalizer-not-a-real-password");
     }
 
     /**
@@ -68,15 +77,16 @@ public class AuthService {
 
     /** Wrong codes are counted as attempts, so this transaction must commit even when it throws. */
     @Transactional(noRollbackFor = ApiException.class)
-    public AuthResponse verifyEmail(String rawEmail, String code) {
+    public AuthResponse verifyEmail(String rawEmail, String code, String userAgent) {
         AppUser user = users.findByEmail(normalizeEmail(rawEmail))
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_VERIFICATION_CODE));
         if (user.isEmailVerified()) {
             throw new ApiException(ErrorCode.EMAIL_ALREADY_VERIFIED);
         }
-        otpService.verify(user, code);
+        otpService.verify(user, code, CodePurpose.VERIFY_EMAIL);
         user.setEmailVerified(true);
-        return completeLogin(user);
+        // Reading the code proved the inbox, which is exactly what the sign-in code checks.
+        return completeLogin(user, trustedDevices.trust(user, userAgent));
     }
 
     /** Silently does nothing for unknown or already-verified emails, to avoid leaking which exist. */
@@ -98,27 +108,64 @@ public class AuthService {
                 .ifPresent(user -> otpService.issue(user, CodePurpose.RESET_PASSWORD));
     }
 
-    /** Wrong codes are counted as attempts, so this transaction must commit even when it throws. */
+    /**
+     * Sets the new password, signs out every other session and forgets every trusted browser, then
+     * signs this one in. Wrong codes are counted, so this transaction must commit even when it throws.
+     */
     @Transactional(noRollbackFor = ApiException.class)
-    public AuthResponse resetPassword(String rawEmail, String code, String newPassword) {
+    public AuthResponse resetPassword(String rawEmail, String code, String newPassword, String userAgent) {
         AppUser user = users.findByEmail(normalizeEmail(rawEmail))
                 .orElseThrow(() -> new ApiException(ErrorCode.INVALID_VERIFICATION_CODE));
-        otpService.verify(user, code);
+        otpService.verify(user, code, CodePurpose.RESET_PASSWORD);
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setEmailVerified(true); // reading the code proves the inbox is theirs
-        return completeLogin(user);
+        user.revokeTokens();
+        trustedDevices.forgetAll(user.getId());
+        limiter.reset(loginFailuresKey(user.getEmail()));
+        return completeLogin(user, trustedDevices.trust(user, userAgent));
     }
 
+    /**
+     * Step 1 of an email/password sign-in. A trusted browser gets its access token right away; any
+     * other gets a challenge and an emailed code (step 2: {@link #verifyLoginCode}).
+     */
     @Transactional
-    public AuthResponse login(LoginRequest request) {
-        AppUser user = users.findByEmail(normalizeEmail(request.email()))
-                .filter(found -> found.getPasswordHash() != null)
-                .filter(found -> passwordEncoder.matches(request.password(), found.getPasswordHash()))
-                .orElseThrow(() -> new ApiException(ErrorCode.INVALID_CREDENTIALS));
+    public Object login(LoginRequest request) {
+        String email = normalizeEmail(request.email());
+        AppProperties.RateLimit limits = properties.rateLimit();
+        String failuresKey = loginFailuresKey(email);
+        if (limits.enabled() && limiter.isBlocked(failuresKey, limits.loginFailuresPerEmail(), limits.loginWindow())) {
+            throw new ApiException(ErrorCode.RATE_LIMITED);
+        }
+        AppUser user = users.findByEmail(email).filter(found -> found.getPasswordHash() != null).orElse(null);
+        boolean matches = passwordEncoder.matches(request.password(), user != null ? user.getPasswordHash() : dummyHash);
+        if (user == null || !matches) {
+            if (limits.enabled()) limiter.tryAcquire(failuresKey, limits.loginFailuresPerEmail(), limits.loginWindow());
+            throw new ApiException(ErrorCode.INVALID_CREDENTIALS);
+        }
         if (!user.isEmailVerified()) {
             throw new ApiException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
-        return completeLogin(user);
+        limiter.reset(failuresKey);
+        if (!properties.twoFactor().enabled() || trustedDevices.isTrusted(user, request.deviceToken())) {
+            return completeLogin(user, null);
+        }
+        sendLoginCode(user);
+        JwtService.IssuedToken challenge = jwtService.issueLoginChallenge(user, properties.twoFactor().challengeTtl());
+        return new LoginChallenge(challenge.token(), user.getEmail(), challenge.expiresAt());
+    }
+
+    /** Step 2: the emailed code plus the challenge from step 1. Trusts this browser from now on. */
+    @Transactional(noRollbackFor = ApiException.class)
+    public AuthResponse verifyLoginCode(String challengeToken, String code, String userAgent) {
+        AppUser user = challengedUser(challengeToken);
+        otpService.verify(user, code, CodePurpose.LOGIN);
+        return completeLogin(user, trustedDevices.trust(user, userAgent));
+    }
+
+    @Transactional
+    public void resendLoginCode(String challengeToken) {
+        otpService.issue(challengedUser(challengeToken), CodePurpose.LOGIN);
     }
 
     @Transactional
@@ -148,10 +195,37 @@ public class AuthService {
         if (profile.pictureUrl() != null && profile.pictureUrl().length() <= 500) {
             user.setAvatarUrl(profile.pictureUrl());
         }
-        return completeLogin(users.save(user));
+        return completeLogin(users.save(user), null);
     }
 
-    private AuthResponse completeLogin(AppUser user) {
+    /** Ends every session of the account: all access tokens and all trusted browsers. */
+    @Transactional
+    public void signOutEverywhere(Long userId) {
+        AppUser user = users.findById(userId).orElseThrow(() -> new ApiException(ErrorCode.USER_NOT_FOUND));
+        user.revokeTokens();
+        trustedDevices.forgetAll(userId);
+    }
+
+    private void sendLoginCode(AppUser user) {
+        try {
+            otpService.issue(user, CodePurpose.LOGIN);
+        } catch (ApiException ex) {
+            // Signing in twice within the resend cooldown: the code from a moment ago is still valid.
+            if (ex.getCode() != ErrorCode.RESEND_TOO_SOON) throw ex;
+        }
+    }
+
+    private AppUser challengedUser(String challengeToken) {
+        JwtService.Challenge challenge = jwtService.readLoginChallenge(challengeToken);
+        AppUser user = users.findById(challenge.userId())
+                .orElseThrow(() -> new ApiException(ErrorCode.LOGIN_CHALLENGE_INVALID));
+        if (user.getTokenVersion() != challenge.tokenVersion()) {
+            throw new ApiException(ErrorCode.LOGIN_CHALLENGE_INVALID);
+        }
+        return user;
+    }
+
+    private AuthResponse completeLogin(AppUser user, String deviceToken) {
         // Owner emails are promoted only once the address is proven (OTP or Google).
         if (user.isEmailVerified() && properties.normalizedSuperAdminEmails().contains(user.getEmail())) {
             user.setRole(Role.SUPER_ADMIN);
@@ -159,7 +233,11 @@ public class AuthService {
         }
         user.setLastLoginAt(clock.instant());
         JwtService.IssuedToken token = jwtService.issue(user);
-        return new AuthResponse(token.token(), token.expiresAt(), UserResponse.of(user));
+        return new AuthResponse(token.token(), token.expiresAt(), UserResponse.of(user), deviceToken);
+    }
+
+    private static String loginFailuresKey(String email) {
+        return "login-fail:" + email;
     }
 
     static String normalizeEmail(String email) {

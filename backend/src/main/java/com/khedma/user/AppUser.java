@@ -64,6 +64,14 @@ public class AppUser {
 
     private Instant lastLoginAt;
 
+    /** Part of every access token; bumping it signs the account out everywhere. */
+    @Column(nullable = false)
+    private int tokenVersion;
+
+    public void revokeTokens() {
+        tokenVersion++;
+    }
+
     public boolean isApproved() {
         return status == UserStatus.APPROVED;
     }

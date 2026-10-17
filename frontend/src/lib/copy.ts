@@ -94,6 +94,14 @@ export const copy = {
     resetSubmit: "غيّر كلمة السر وادخل",
     passwordChanged: "اتغيرت كلمة السر",
     backToSignIn: "رجوع لتسجيل الدخول",
+    loginCodeTitle: "تأكيد تسجيل الدخول",
+    loginCodeSentTo: "ده أول دخول من الجهاز ده. بعتنا كود من 6 أرقام على",
+    loginCodeHint: "بعد ما تأكد، الجهاز ده مش هيطلب كود تاني لمدة 30 يوم.",
+    paste: "لصق",
+    pasteCode: "لصق الكود",
+    linkOtherBrowser: "افتح اللينك من نفس المتصفح اللي سجلت منه، أو اكتب الكود هناك",
+    signOutEverywhere: "خروج من كل الأجهزة",
+    signOutEverywhereConfirm: "هتخرج من الحساب على كل الموبايلات والأجهزة، وأي جهاز هيدخل تاني هيطلب كود على الإيميل. متأكد؟",
   },
 
   pending: {
