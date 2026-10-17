@@ -64,8 +64,8 @@ public class EmailSender {
     }
 
     public void sendCode(String to, String name, String code, Duration validFor, CodePurpose purpose) {
-        // The code leads the subject so it shows in the phone's notification and iOS can offer to fill it in.
-        String subject = code + " هو " + purpose.title() + " | خدمة إعدادي";
+        // The code stays inside the message only: not in the subject or the inbox preview line.
+        String subject = purpose.title() + " | خدمة إعدادي";
         String link = link(to, code, purpose);
         String text = text(name, code, validFor, purpose, link);
         String html = html(name, code, validFor, purpose, link);
@@ -118,7 +118,7 @@ public class EmailSender {
                 أو افتح اللينك ده والكود هيتكتب لوحده:
                 %s
 
-                الكود صالح لمدة %d دقايق. لو مش إنت اللي طلبته، تجاهل الإيميل ده؛ محدش يقدر يستخدم حسابك من غير الكود.
+                الكود صالح لمدة %d دقايق.
 
                 خدمة إعدادي
                 """.formatted(name, purpose.intro(), code, link, validFor.toMinutes());
@@ -186,7 +186,7 @@ public class EmailSender {
             <title>{{title}}</title>
             </head>
             <body style="margin:0;padding:0;background:#f6f1e4;">
-            <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{code}} هو {{title}}</div>
+            <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{intro}}</div>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f6f1e4;">
             <tr><td align="center" style="padding:32px 14px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:20px;overflow:hidden;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;direction:rtl;text-align:right;">
@@ -207,10 +207,6 @@ public class EmailSender {
             <tr><td align="center" style="padding:14px 28px 28px;">
             <a href="{{link}}" style="display:inline-block;background:#8c650f;color:#ffffff;text-decoration:none;font-size:16px;font-weight:700;padding:14px 34px;border-radius:12px;">{{action}}</a>
             <div style="color:#a8a29e;font-size:12px;margin-top:10px;">الزرار بيفتح الموقع والكود مكتوب لوحده</div>
-            </td></tr>
-            <tr><td style="padding:18px 28px;background:#faf8f3;border-top:1px solid #eee7d6;color:#78716c;font-size:12px;line-height:1.8;">
-            لو مش إنت اللي طلبت الكود ده، تجاهل الإيميل؛ محدش يقدر يستخدم حسابك من غير الكود.
-            ومتبعتش الكود لأي حد، حتى لو قال إنه من الخدمة.
             </td></tr>
             </table>
             </td></tr>

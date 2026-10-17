@@ -8,6 +8,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 
 import java.time.Duration;
 import java.time.ZoneId;
@@ -47,7 +48,7 @@ class EmailSenderTest {
                 .andExpect(jsonPath("$.to[0].email").value("user@test.local"))
                 .andExpect(jsonPath("$.textContent").value(containsString("123456")))
                 .andExpect(jsonPath("$.htmlContent").value(containsString("123456")))
-                .andExpect(jsonPath("$.subject").value(containsString("123456")))
+                .andExpect(jsonPath("$.subject").value(not(containsString("123456"))))
                 .andRespond(withStatus(HttpStatus.CREATED));
 
         sender("test-key").sendCode("user@test.local", "User", "123456", Duration.ofMinutes(10), CodePurpose.VERIFY_EMAIL);
