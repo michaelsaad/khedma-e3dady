@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/auth/AuthProvider";
 import { GoogleButton, googleEnabled } from "@/auth/GoogleButton";
 import { Brand } from "@/components/Layout";
+import { InfoLinks } from "@/pages/InfoPages";
 import { CodeInput } from "@/components/CodeInput";
 import { Button, Field, Input, Segmented } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -127,6 +128,7 @@ export default function LoginPage() {
               )}
             </>
           )}
+          <InfoLinks className="mt-10" />
         </div>
       </div>
 

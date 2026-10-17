@@ -8,6 +8,7 @@ import type { Role } from "@/lib/types";
 import AttendancePage from "@/pages/AttendancePage";
 import DashboardPage from "@/pages/DashboardPage";
 import GroupsPage from "@/pages/GroupsPage";
+import { AboutPage, ContactPage, PrivacyPage } from "@/pages/InfoPages";
 import LoginPage from "@/pages/LoginPage";
 import MyPointsPage from "@/pages/MyPointsPage";
 import NotificationsPage from "@/pages/NotificationsPage";
@@ -24,6 +25,9 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/contact" element={<ContactPage />} />
       <Route path="/login" element={user ? <Navigate to="/" replace /> : <LoginPage />} />
       <Route path="/pending" element={<RequireSignedIn><PendingPage /></RequireSignedIn>} />
       <Route
