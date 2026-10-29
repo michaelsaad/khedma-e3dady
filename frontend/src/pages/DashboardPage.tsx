@@ -3,6 +3,7 @@ import { CalendarDays, Church, HandHeart, Search, Users } from "lucide-react";
 import { useDeferredValue, useState } from "react";
 import { Link } from "react-router";
 import { useAuth } from "@/auth/AuthProvider";
+import { PeriodPicker } from "@/components/PeriodsManager";
 import { RankBadge, StatTile, StudentCardView } from "@/components/stats";
 import { Card, EmptyState, ErrorState, Input, PageHeader, Pagination, Segmented, Select, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -14,11 +15,19 @@ type Sort = "POINTS" | "ATTENDANCE" | "NAME";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const summary = useQuery({ queryKey: ["dashboard"], queryFn: () => api.get<DashboardSummary>("/dashboard") });
+  const [periodId, setPeriodId] = useState<number | undefined>();
+  const summary = useQuery({
+    queryKey: ["dashboard", "summary", periodId],
+    queryFn: () => api.get<DashboardSummary>("/dashboard", { periodId }),
+    placeholderData: keepPreviousData,
+  });
 
   return (
     <>
-      <PageHeader title={copy.dashboard.greeting(user?.displayName.split(" ")[0] ?? "")} />
+      <PageHeader
+        title={copy.dashboard.greeting(user?.displayName.split(" ")[0] ?? "")}
+        actions={<PeriodPicker value={periodId} onChange={setPeriodId} />}
+      />
 
       {summary.isPending ? (
         <Spinner />
@@ -28,7 +37,7 @@ export default function DashboardPage() {
         <SummarySection data={summary.data} />
       )}
 
-      <StudentsGrid groups={summary.data?.groups ?? []} />
+      <StudentsGrid groups={summary.data?.groups ?? []} periodId={periodId} />
     </>
   );
 }
@@ -88,7 +97,7 @@ function SummarySection({ data }: { data: DashboardSummary }) {
   );
 }
 
-function StudentsGrid({ groups }: { groups: DashboardSummary["groups"] }) {
+function StudentsGrid({ groups, periodId }: { groups: DashboardSummary["groups"]; periodId: number | undefined }) {
   const [search, setSearch] = useState("");
   const [grade, setGrade] = useState<Grade | "">("");
   const [groupId, setGroupId] = useState("");
@@ -97,8 +106,8 @@ function StudentsGrid({ groups }: { groups: DashboardSummary["groups"] }) {
   const q = useDeferredValue(search);
 
   const cards = useQuery({
-    queryKey: ["dashboard", "students", q, grade, groupId, sort, page],
-    queryFn: () => api.get<Page<StudentCard>>("/dashboard/students", { q, grade, groupId, sort, page, size: 24 }),
+    queryKey: ["dashboard", "students", q, grade, groupId, sort, page, periodId],
+    queryFn: () => api.get<Page<StudentCard>>("/dashboard/students", { q, grade, groupId, sort, page, size: 24, periodId }),
     placeholderData: keepPreviousData,
   });
 

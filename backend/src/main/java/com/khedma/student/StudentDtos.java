@@ -24,10 +24,13 @@ public final class StudentDtos {
             String phone,
             Long groupId,
             String groupName,
+            /** All-time total. */
             int pointsBalance,
+            /** Points in the current period. */
+            int periodPoints,
             Instant createdAt) {
 
-        public static StudentResponse of(Student s) {
+        public static StudentResponse of(Student s, int periodPoints) {
             return new StudentResponse(
                     s.getId(),
                     s.getName(),
@@ -36,6 +39,7 @@ public final class StudentDtos {
                     s.getGroup() == null ? null : s.getGroup().getId(),
                     s.getGroup() == null ? null : s.getGroup().getName(),
                     s.getPointsBalance(),
+                    periodPoints,
                     s.getCreatedAt());
         }
     }

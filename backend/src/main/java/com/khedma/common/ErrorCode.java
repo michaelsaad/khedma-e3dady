@@ -60,6 +60,12 @@ public enum ErrorCode {
     PUSH_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "Push notifications are not configured on the server"),
     PUSH_ENDPOINT_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "This push service address is not accepted"),
 
+    // Point periods
+    PERIOD_NOT_FOUND(HttpStatus.NOT_FOUND, "Point period not found"),
+    PERIOD_START_INVALID(HttpStatus.BAD_REQUEST, "A new period must start after the latest one"),
+    PERIOD_NOT_LATEST(HttpStatus.CONFLICT, "Only the latest period can be removed"),
+    PERIOD_LAST_ONE(HttpStatus.CONFLICT, "The only period can't be removed"),
+
     // Settings
     INVALID_SEASON_RANGE(HttpStatus.BAD_REQUEST, "Season end must be after season start");
 

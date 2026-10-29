@@ -33,6 +33,8 @@ import com.khedma.dashboard.DashboardDtos.Summary;
 import com.khedma.group.GroupRepository;
 import com.khedma.group.StudentGroup;
 import com.khedma.points.PointsService;
+import com.khedma.points.period.PointPeriodService;
+import com.khedma.points.period.PointPeriodService.Range;
 import com.khedma.settings.AppSettings;
 import com.khedma.settings.SettingsService;
 import com.khedma.student.Grade;
@@ -56,10 +58,11 @@ public class DashboardService {
     private final MeetingCalendar calendar;
     private final PointsService pointsService;
     private final SkippedMeetingRepository skippedMeetings;
+    private final PointPeriodService periods;
 
     public DashboardService(StudentRepository students, GroupRepository groups, AttendanceRepository attendance,
                             SettingsService settingsService, MeetingCalendar calendar, PointsService pointsService,
-                            SkippedMeetingRepository skippedMeetings) {
+                            SkippedMeetingRepository skippedMeetings, PointPeriodService periods) {
         this.students = students;
         this.groups = groups;
         this.attendance = attendance;
@@ -67,11 +70,13 @@ public class DashboardService {
         this.calendar = calendar;
         this.pointsService = pointsService;
         this.skippedMeetings = skippedMeetings;
+        this.periods = periods;
     }
 
     @Transactional(readOnly = true)
-    public Summary summary() {
-        Season season = loadSeason();
+    public Summary summary(Long periodId) {
+        Range period = periods.range(periodId);
+        Season season = loadSeason(period);
         List<StudentCard> cards = season.cards();
 
         LastMeeting last = null;
@@ -90,12 +95,14 @@ public class DashboardService {
         Map<Long, Long> members = cards.stream()
                 .filter(card -> card.groupId() != null)
                 .collect(Collectors.groupingBy(StudentCard::groupId, Collectors.counting()));
+        Map<Long, Integer> groupPoints = periods.groupPoints(period);
+        ToIntFunction<StudentGroup> inPeriod = g -> groupPoints.getOrDefault(g.getId(), 0);
         List<StudentGroup> byPoints = allGroups.stream()
-                .sorted(Comparator.comparingInt(StudentGroup::getPointsBalance).reversed())
+                .sorted(Comparator.comparingInt(inPeriod).reversed())
                 .toList();
         List<GroupStanding> standings = byPoints.stream()
-                .map(g -> new GroupStanding(g.getId(), g.getName(), g.getPointsBalance(),
-                        rank(byPoints, g, StudentGroup::getPointsBalance), members.getOrDefault(g.getId(), 0L)))
+                .map(g -> new GroupStanding(g.getId(), g.getName(), inPeriod.applyAsInt(g),
+                        rank(byPoints, g, inPeriod), g.getPointsBalance(), members.getOrDefault(g.getId(), 0L)))
                 .toList();
 
         return new Summary(
@@ -106,13 +113,15 @@ public class DashboardService {
                 average(cards, StudentCard::serviceRate),
                 average(cards, StudentCard::massRate),
                 cards.stream().sorted(Comparator.comparingInt(StudentCard::rank)).limit(TOP_STUDENTS).toList(),
-                standings);
+                standings,
+                periods.describe(period));
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<StudentCard> cards(String query, Grade grade, Long groupId, SortBy sortBy, int page, int size) {
+    public PageResponse<StudentCard> cards(String query, Grade grade, Long groupId, SortBy sortBy, int page, int size,
+                                           Long periodId) {
         String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
-        List<StudentCard> filtered = loadSeason().cards().stream()
+        List<StudentCard> filtered = loadSeason(periods.range(periodId)).cards().stream()
                 .filter(card -> grade == null || card.grade() == grade)
                 .filter(card -> groupId == null || groupId.equals(card.groupId()))
                 .filter(card -> q.isEmpty() || card.name().toLowerCase(Locale.ROOT).contains(q))
@@ -128,8 +137,9 @@ public class DashboardService {
     }
 
     @Transactional(readOnly = true)
-    public StudentDetail student(Long id) {
-        Season season = loadSeason();
+    public StudentDetail student(Long id, Long periodId) {
+        Range period = periods.range(periodId);
+        Season season = loadSeason(period);
         StudentCard card = season.cards().stream()
                 .filter(c -> c.id().equals(id))
                 .findFirst()
@@ -146,7 +156,7 @@ public class DashboardService {
                 })
                 .toList();
 
-        return new StudentDetail(card, history, pointsService.forStudent(id, 0, 20).items());
+        return new StudentDetail(card, history, pointsService.forStudent(id, 0, 20).items(), periods.describe(period));
     }
 
     // ---- internals ------------------------------------------------------------------------
@@ -154,7 +164,7 @@ public class DashboardService {
     private record Season(List<LocalDate> meetings, List<Attendance> records, Set<Long> activeIds,
                           List<StudentCard> cards) {}
 
-    private Season loadSeason() {
+    private Season loadSeason(Range period) {
         AppSettings settings = settingsService.current();
         // Skipped meetings (not held) count for nothing: not in "meetings held", rates or history.
         Set<LocalDate> skipped = skippedMeetings.allDates();
@@ -174,8 +184,10 @@ public class DashboardService {
         }
 
         List<Student> active = students.findAllByActiveTrue();
+        Map<Long, Integer> periodPoints = periods.studentPoints(period);
+        ToIntFunction<Student> inPeriod = s -> periodPoints.getOrDefault(s.getId(), 0);
         List<Student> byPoints = active.stream()
-                .sorted(Comparator.comparingInt(Student::getPointsBalance).reversed())
+                .sorted(Comparator.comparingInt(inPeriod).reversed())
                 .toList();
         int held = meetings.size();
         List<StudentCard> cards = active.stream()
@@ -188,8 +200,9 @@ public class DashboardService {
                             s.getPhone(),
                             s.getGroup() == null ? null : s.getGroup().getId(),
                             s.getGroup() == null ? null : s.getGroup().getName(),
+                            inPeriod.applyAsInt(s),
+                            rank(byPoints, s, inPeriod),
                             s.getPointsBalance(),
-                            rank(byPoints, s, Student::getPointsBalance),
                             c[0],
                             c[1],
                             held,

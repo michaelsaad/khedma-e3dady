@@ -81,6 +81,7 @@ export function StudentCardView({ card }: { card: StudentCard }) {
           <span className="text-2xl font-bold tabular">{formatNumber(card.points)}</span>
           <span className="text-sm text-stone-500">{copy.common.point}</span>
         </div>
+        {card.totalPoints !== card.points && <p className="mt-0.5 text-xs text-stone-500">{copy.points.total(card.totalPoints)}</p>}
 
         <div className="mt-3 space-y-2 text-xs text-stone-600">
           <RateRow icon={<HandHeart className="size-3.5" />} label={copy.common.serviceTitle} count={card.serviceCount} total={card.meetingsHeld} rate={card.serviceRate} tone="brand" />

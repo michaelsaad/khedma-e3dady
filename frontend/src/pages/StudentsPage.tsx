@@ -100,12 +100,13 @@ export default function StudentsPage() {
                     </div>
                   </div>
                   <button
-                    onClick={() => setPoints({ type: "students", id: s.id, name: s.name, balance: s.pointsBalance })}
+                    onClick={() => setPoints({ type: "students", id: s.id, name: s.name, balance: s.periodPoints })}
+                    title={copy.points.total(s.pointsBalance)}
                     aria-label={copy.students.pointsLabel(s.name)}
                     className="flex items-center gap-1.5 rounded-xl bg-gold-100/70 px-3 py-1.5 text-sm font-semibold text-amber-900 hover:bg-gold-100"
                   >
                     <Coins className="size-4" />
-                    <span className="tabular">{formatNumber(s.pointsBalance)}</span>
+                    <span className="tabular">{formatNumber(s.periodPoints)}</span>
                   </button>
                   <div className="flex">
                     <Button variant="ghost" size="icon" onClick={() => setEditing(s)} aria-label={copy.common.edit}>

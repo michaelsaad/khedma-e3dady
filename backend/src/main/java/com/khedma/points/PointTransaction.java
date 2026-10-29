@@ -68,6 +68,13 @@ public class PointTransaction {
     /** The Friday a manual transaction was given on (from the attendance page); null otherwise. */
     private LocalDate meetingDate;
 
+    /**
+     * The day this transaction counts on for point periods: attendance points use their Friday,
+     * everything else the day it was created.
+     */
+    @Column(nullable = false)
+    private LocalDate effectiveDate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reverses_id")
     private PointTransaction reverses;

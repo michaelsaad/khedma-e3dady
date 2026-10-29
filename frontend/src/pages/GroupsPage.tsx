@@ -47,10 +47,13 @@ export default function GroupsPage() {
                 </Button>
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <p className="text-3xl font-bold tabular">
-                  {formatNumber(g.pointsBalance)} <span className="text-sm font-normal text-stone-500">{copy.common.point}</span>
-                </p>
-                <Button variant="secondary" size="sm" onClick={() => setPoints({ type: "groups", id: g.id, name: g.name, balance: g.pointsBalance })}>
+                <div>
+                  <p className="text-3xl font-bold tabular">
+                    {formatNumber(g.periodPoints)} <span className="text-sm font-normal text-stone-500">{copy.common.point}</span>
+                  </p>
+                  {g.pointsBalance !== g.periodPoints && <p className="text-xs text-stone-500">{copy.points.total(g.pointsBalance)}</p>}
+                </div>
+                <Button variant="secondary" size="sm" onClick={() => setPoints({ type: "groups", id: g.id, name: g.name, balance: g.periodPoints })}>
                   <Coins className="size-4" />
                   {copy.common.points}
                 </Button>

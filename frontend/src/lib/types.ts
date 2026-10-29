@@ -83,14 +83,28 @@ export interface Student {
   phone: string;
   groupId: number | null;
   groupName: string | null;
+  /** All-time total. */
   pointsBalance: number;
+  /** Points in the current period. */
+  periodPoints: number;
   createdAt: string;
+}
+
+export interface PointPeriod {
+  id: number;
+  name: string;
+  startsOn: string;
+  /** Last day (inclusive); null while the period is open. */
+  endsOn: string | null;
+  current: boolean;
+  upcoming: boolean;
 }
 
 export interface Group {
   id: number;
   name: string;
   pointsBalance: number;
+  periodPoints: number;
   memberCount: number;
 }
 
@@ -175,8 +189,11 @@ export interface StudentCard {
   phone: string;
   groupId: number | null;
   groupName: string | null;
+  /** Points in the shown period; rank is by these. */
   points: number;
   rank: number;
+  /** All-time total. */
+  totalPoints: number;
   serviceCount: number;
   massCount: number;
   meetingsHeld: number;
@@ -189,6 +206,7 @@ interface GroupStanding {
   name: string;
   points: number;
   rank: number;
+  totalPoints: number;
   memberCount: number;
 }
 
@@ -201,10 +219,12 @@ export interface DashboardSummary {
   averageMassRate: number;
   topStudents: StudentCard[];
   groups: GroupStanding[];
+  period: PointPeriod;
 }
 
 export interface StudentDetail {
   card: StudentCard;
   attendance: { date: string; service: boolean; mass: boolean }[];
   recentTransactions: Transaction[];
+  period: PointPeriod;
 }

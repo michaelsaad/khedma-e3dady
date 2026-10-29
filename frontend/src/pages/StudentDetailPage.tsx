@@ -54,6 +54,7 @@ export function StudentProfile({ detail }: { detail: StudentDetail }) {
             <div>
               <p className="text-2xl leading-none font-bold tabular">{formatNumber(card.points)}</p>
               <p className="mt-1 text-xs text-stone-600">{copy.common.point}</p>
+              {card.totalPoints !== card.points && <p className="mt-0.5 text-xs text-stone-500">{copy.points.total(card.totalPoints)}</p>}
             </div>
             <RankBadge rank={card.rank} />
           </div>

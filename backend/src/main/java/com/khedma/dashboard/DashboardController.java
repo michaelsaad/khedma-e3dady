@@ -24,9 +24,10 @@ public class DashboardController {
         this.dashboardService = dashboardService;
     }
 
+    /** {@code periodId} picks a point period; the current one when omitted. */
     @GetMapping
-    public Summary summary() {
-        return dashboardService.summary();
+    public Summary summary(@RequestParam(required = false) Long periodId) {
+        return dashboardService.summary(periodId);
     }
 
     @GetMapping("/students")
@@ -35,12 +36,13 @@ public class DashboardController {
                                            @RequestParam(required = false) Long groupId,
                                            @RequestParam(defaultValue = "POINTS") SortBy sort,
                                            @RequestParam(defaultValue = "0") int page,
-                                           @RequestParam(defaultValue = "24") int size) {
-        return dashboardService.cards(q, grade, groupId, sort, page, size);
+                                           @RequestParam(defaultValue = "24") int size,
+                                           @RequestParam(required = false) Long periodId) {
+        return dashboardService.cards(q, grade, groupId, sort, page, size, periodId);
     }
 
     @GetMapping("/students/{id}")
-    public StudentDetail student(@PathVariable Long id) {
-        return dashboardService.student(id);
+    public StudentDetail student(@PathVariable Long id, @RequestParam(required = false) Long periodId) {
+        return dashboardService.student(id, periodId);
     }
 }

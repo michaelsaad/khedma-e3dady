@@ -3,6 +3,7 @@ package com.khedma.student;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -16,6 +17,7 @@ import com.khedma.common.PageResponse;
 import com.khedma.group.GroupRepository;
 import com.khedma.group.StudentGroup;
 import com.khedma.student.StudentDtos.StudentRequest;
+import com.khedma.points.period.PointPeriodService;
 import com.khedma.student.StudentDtos.StudentResponse;
 
 import jakarta.persistence.criteria.JoinType;
@@ -28,10 +30,12 @@ public class StudentService {
 
     private final StudentRepository students;
     private final GroupRepository groups;
+    private final PointPeriodService periods;
 
-    public StudentService(StudentRepository students, GroupRepository groups) {
+    public StudentService(StudentRepository students, GroupRepository groups, PointPeriodService periods) {
         this.students = students;
         this.groups = groups;
+        this.periods = periods;
     }
 
     @Transactional(readOnly = true)
@@ -51,7 +55,9 @@ public class StudentService {
             return cb.and(where.toArray(Predicate[]::new));
         };
         PageRequest pageable = PageRequest.of(Math.max(page, 0), Math.min(Math.max(size, 1), 200), DEFAULT_SORT);
-        return PageResponse.of(students.findAll(spec, pageable), StudentResponse::of);
+        Map<Long, Integer> periodPoints = periods.studentPoints(periods.current());
+        return PageResponse.of(students.findAll(spec, pageable),
+                s -> StudentResponse.of(s, periodPoints.getOrDefault(s.getId(), 0)));
     }
 
     /** Creating a student that was removed before (same name + grade) restores them with their history. */
@@ -70,7 +76,8 @@ public class StudentService {
         student.setGrade(request.grade());
         student.setPhone(normalizePhone(request.phone()));
         student.setGroup(group);
-        return StudentResponse.of(students.save(student));
+        Student saved = students.save(student);
+        return StudentResponse.of(saved, periods.studentPoints(saved.getId(), periods.current()));
     }
 
     @Transactional
@@ -84,7 +91,7 @@ public class StudentService {
         student.setGrade(request.grade());
         student.setPhone(normalizePhone(request.phone()));
         student.setGroup(resolveGroup(request.groupId()));
-        return StudentResponse.of(student);
+        return StudentResponse.of(student, periods.studentPoints(student.getId(), periods.current()));
     }
 
     /** Soft delete: keeps attendance and points history. */

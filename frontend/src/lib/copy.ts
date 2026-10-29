@@ -301,14 +301,15 @@ export const copy = {
 
   points: {
     dialogTitle: (name: string) => `نقط ${name}`,
-    currentBalance: "الرصيد الحالي",
+    currentBalance: "نقط الفترة دي",
+    total: (points: number) => `الإجمالي من البداية: ${n(points)}`,
     newTab: "حركة جديدة",
     historyTab: "السجل",
     add: "إضافة",
     deduct: "خصم",
     reset: "تصفير",
     amount: "عدد النقط",
-    resetWarning: (balance: number) => `هيتم خصم الرصيد كله (${n(balance)} نقطة).`,
+    resetWarning: (balance: number) => `هيتم خصم نقط الفترة دي كلها (${n(balance)} نقطة). الإجمالي القديم مش هيتأثر.`,
     reason: "السبب",
     reasonPlaceholder: "اكتب السبب أو اختار من تحت",
     saveReason: "احفظ السبب ده في القايمة",
@@ -316,7 +317,7 @@ export const copy = {
     done: (name: string, delta: string, balance: number) => `${name}: ${delta} نقطة · الرصيد ${n(balance)}`,
     submitAdd: "إضافة النقط",
     submitDeduct: "خصم النقط",
-    submitReset: "تصفير الرصيد",
+    submitReset: "تصفير نقط الفترة",
   },
 
   history: {
@@ -376,6 +377,29 @@ export const copy = {
     historyEmpty: "لسه ما بعتّش رسايل.",
     sentBy: (name: string) => `من ${name}`,
     devicesCount: (devices: number) => `${n(devices)} جهاز`,
+  },
+
+  // Point periods: points start again from zero (e.g. after a party); older periods stay viewable
+  periods: {
+    title: "فترات النقط",
+    subtitle: "ابدأ فترة جديدة والنقط تبدأ من صفر للكل. النقط القديمة محفوظة وتقدر تشوفها.",
+    start: "فترة جديدة",
+    newTitle: "ابدأ فترة نقط جديدة",
+    explain: "من أول يوم البداية، نقط المخدومين والجروبات هتتعد من صفر. الإجمالي القديم والفترات اللي فاتت هيفضلوا زي ما هم. حضور الجمع اللي قبلها بيتحسب في فترتها.",
+    nameLabel: "اسم الفترة",
+    namePlaceholder: "مثلًا: بعد حفلة أكتوبر",
+    startLabel: "تبدأ من يوم",
+    startHint: "لازم يكون بعد بداية آخر فترة.",
+    confirm: "ابدأ الفترة",
+    started: "الفترة الجديدة بدأت",
+    removed: "اتشالت الفترة، ونقطها رجعت للفترة اللي قبلها",
+    removeConfirm: (name: string) => `تشيل فترة «${name}»؟ نقطها هترجع للفترة اللي قبلها، ومفيش نقط هتتمسح.`,
+    removeLabel: (name: string) => `شيل فترة ${name}`,
+    current: "الحالية",
+    upcoming: "لسه مبدأتش",
+    range: (from: string, to: string | null) => (to ? `من ${from} لـ ${to}` : `من ${from}`),
+    pickerLabel: "الفترة",
+    currentOption: (name: string) => `${name} (الحالية)`,
   },
 
   settings: {

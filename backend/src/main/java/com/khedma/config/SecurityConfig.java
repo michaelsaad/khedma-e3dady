@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -40,6 +41,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/me", "/api/me/sign-out-everywhere").authenticated()
                         // Any approved account (USER and up).
                         .requestMatchers("/api/dashboard/**").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/point-periods").hasRole("USER")
                         // Any approved account can turn notifications on for its own devices.
                         .requestMatchers("/api/push/**").hasRole("USER")
                         .requestMatchers("/api/notifications/**").hasRole("SUPER_ADMIN")

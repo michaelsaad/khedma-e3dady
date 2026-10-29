@@ -9,6 +9,7 @@ import com.khedma.common.ApiException;
 import com.khedma.common.ErrorCode;
 import com.khedma.group.GroupDtos.GroupRequest;
 import com.khedma.group.GroupDtos.GroupResponse;
+import com.khedma.points.period.PointPeriodService;
 import com.khedma.student.StudentRepository;
 
 @Service
@@ -16,10 +17,12 @@ public class GroupService {
 
     private final GroupRepository groups;
     private final StudentRepository students;
+    private final PointPeriodService periods;
 
-    public GroupService(GroupRepository groups, StudentRepository students) {
+    public GroupService(GroupRepository groups, StudentRepository students, PointPeriodService periods) {
         this.groups = groups;
         this.students = students;
+        this.periods = periods;
     }
 
     @Transactional(readOnly = true)
@@ -46,7 +49,8 @@ public class GroupService {
     }
 
     private GroupResponse toResponse(StudentGroup group) {
-        return new GroupResponse(group.getId(), group.getName(), group.getPointsBalance(),
+        int periodPoints = group.getId() == null ? 0 : periods.groupPoints(group.getId(), periods.current());
+        return new GroupResponse(group.getId(), group.getName(), group.getPointsBalance(), periodPoints,
                 students.countByGroupIdAndActiveTrue(group.getId()));
     }
 }

@@ -21,6 +21,7 @@ import com.khedma.group.StudentGroup;
 import com.khedma.points.PointsDtos.ManualKind;
 import com.khedma.points.PointsDtos.ManualPointsRequest;
 import com.khedma.points.PointsDtos.TransactionResponse;
+import com.khedma.points.period.PointPeriodService;
 import com.khedma.points.reason.PointReasonRepository;
 import com.khedma.student.Student;
 import com.khedma.student.StudentRepository;
@@ -43,10 +44,11 @@ public class PointsService {
     private final PointReasonRepository reasons;
     private final Clock clock;
     private final ApplicationEventPublisher events;
+    private final PointPeriodService periods;
 
     public PointsService(PointTransactionRepository transactions, StudentRepository students,
                          GroupRepository groups, UserRepository users, PointReasonRepository reasons, Clock clock,
-                         ApplicationEventPublisher events) {
+                         ApplicationEventPublisher events, PointPeriodService periods) {
         this.transactions = transactions;
         this.students = students;
         this.groups = groups;
@@ -54,6 +56,7 @@ public class PointsService {
         this.reasons = reasons;
         this.clock = clock;
         this.events = events;
+        this.periods = periods;
     }
 
     // ---- Manual transactions ------------------------------------------------------------
@@ -63,7 +66,8 @@ public class PointsService {
         Student student = students.findByIdForUpdate(studentId)
                 .filter(Student::isActive)
                 .orElseThrow(() -> new ApiException(ErrorCode.STUDENT_NOT_FOUND));
-        int delta = manualDelta(request, student.getPointsBalance());
+        int periodPoints = periods.studentPoints(student.getId(), periods.current());
+        int delta = manualDelta(request, periodPoints);
         PointTransaction tx = newTransaction(manualType(request), delta, request.notes().trim(), actorId);
         tx.setStudent(student);
         tx.setMeetingDate(request.meetingDate());
@@ -72,7 +76,7 @@ public class PointsService {
         reasons.incrementUsage(tx.getNotes());
         TransactionResponse saved = TransactionResponse.of(transactions.save(tx));
         if (request.kind() == ManualKind.ADD) {
-            events.publishEvent(new PointsGiven(student.getId(), delta, tx.getNotes(), student.getPointsBalance()));
+            events.publishEvent(new PointsGiven(student.getId(), delta, tx.getNotes(), periodPoints + delta));
         }
         return saved;
     }
@@ -81,7 +85,7 @@ public class PointsService {
     public TransactionResponse manualForGroup(Long groupId, ManualPointsRequest request, Long actorId) {
         StudentGroup group = groups.findByIdForUpdate(groupId)
                 .orElseThrow(() -> new ApiException(ErrorCode.GROUP_NOT_FOUND));
-        int delta = manualDelta(request, group.getPointsBalance());
+        int delta = manualDelta(request, periods.groupPoints(group.getId(), periods.current()));
         PointTransaction tx = newTransaction(manualType(request), delta, request.notes().trim(), actorId);
         tx.setGroup(group);
         group.setPointsBalance(group.getPointsBalance() + delta);
@@ -109,6 +113,8 @@ public class PointsService {
         undo.setStudent(student);
         undo.setReverses(bonus);
         undo.setMeetingDate(bonus.getMeetingDate());
+        // A correction, not new points: it counts in the same period as the bonus it cancels.
+        undo.setEffectiveDate(bonus.getEffectiveDate());
         student.setPointsBalance(student.getPointsBalance() + undo.getAmount());
         undo.setBalanceAfter(student.getPointsBalance());
         return TransactionResponse.of(transactions.save(undo));
@@ -120,6 +126,7 @@ public class PointsService {
         return transactions.findActiveMeetingBonuses(studentId, date).stream().map(TransactionResponse::of).toList();
     }
 
+    /** {@code balance} is the current period's points: deductions and resets can't take the period below zero. */
     private static int manualDelta(ManualPointsRequest request, int balance) {
         return switch (request.kind()) {
             case ADD -> requireAmount(request);
@@ -197,6 +204,7 @@ public class PointsService {
         tx.setStudent(student);
         tx.setAttendance(attendance);
         tx.setAttendanceKind(kind);
+        tx.setEffectiveDate(attendance.getMeetingDate());
         // Reversals may take the balance below zero if awarded points were already spent;
         // that is intentional so the ledger always stays correct.
         student.setPointsBalance(student.getPointsBalance() + tx.getAmount());
@@ -235,6 +243,7 @@ public class PointsService {
         tx.setNotes(notes);
         tx.setCreatedBy(actorId == null ? null : users.getReferenceById(actorId));
         tx.setCreatedAt(clock.instant());
+        tx.setEffectiveDate(LocalDate.now(clock));
         return tx;
     }
 }

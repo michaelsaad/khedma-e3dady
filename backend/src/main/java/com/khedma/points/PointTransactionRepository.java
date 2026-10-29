@@ -45,6 +45,32 @@ public interface PointTransactionRepository extends JpaRepository<PointTransacti
 
     boolean existsByReversesId(Long reversesId);
 
+    // ---- Point periods: sums over effective dates (two variants so no parameter is ever null) ----
+
+    @Query("select t.student.id, sum(t.amount) from PointTransaction t where t.student is not null and t.effectiveDate >= :from group by t.student.id")
+    List<Object[]> sumByStudentFrom(LocalDate from);
+
+    @Query("select t.student.id, sum(t.amount) from PointTransaction t where t.student is not null and t.effectiveDate >= :from and t.effectiveDate < :to group by t.student.id")
+    List<Object[]> sumByStudentBetween(LocalDate from, LocalDate to);
+
+    @Query("select t.group.id, sum(t.amount) from PointTransaction t where t.group is not null and t.effectiveDate >= :from group by t.group.id")
+    List<Object[]> sumByGroupFrom(LocalDate from);
+
+    @Query("select t.group.id, sum(t.amount) from PointTransaction t where t.group is not null and t.effectiveDate >= :from and t.effectiveDate < :to group by t.group.id")
+    List<Object[]> sumByGroupBetween(LocalDate from, LocalDate to);
+
+    @Query("select sum(t.amount) from PointTransaction t where t.student.id = :studentId and t.effectiveDate >= :from")
+    Long sumForStudentFrom(Long studentId, LocalDate from);
+
+    @Query("select sum(t.amount) from PointTransaction t where t.student.id = :studentId and t.effectiveDate >= :from and t.effectiveDate < :to")
+    Long sumForStudentBetween(Long studentId, LocalDate from, LocalDate to);
+
+    @Query("select sum(t.amount) from PointTransaction t where t.group.id = :groupId and t.effectiveDate >= :from")
+    Long sumForGroupFrom(Long groupId, LocalDate from);
+
+    @Query("select sum(t.amount) from PointTransaction t where t.group.id = :groupId and t.effectiveDate >= :from and t.effectiveDate < :to")
+    Long sumForGroupBetween(Long groupId, LocalDate from, LocalDate to);
+
     @EntityGraph(attributePaths = {"student", "group", "createdBy", "attendance"})
     Page<PointTransaction> findAllByStudentId(Long studentId, Pageable pageable);
 

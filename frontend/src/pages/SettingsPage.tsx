@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Church, HandHeart } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { PeriodsManager } from "@/components/PeriodsManager";
 import { ReasonsManager } from "@/components/ReasonsManager";
 import { Button, Card, ErrorState, Field, Input, PageHeader, Select, Spinner } from "@/components/ui";
 import { api, ApiError } from "@/lib/api";
@@ -21,6 +22,7 @@ export default function SettingsPage() {
       ) : (
         <div className="space-y-4">
           <SettingsForm key={settings.data.updatedAt} settings={settings.data} />
+          <PeriodsManager />
           <ReasonsManager />
         </div>
       )}

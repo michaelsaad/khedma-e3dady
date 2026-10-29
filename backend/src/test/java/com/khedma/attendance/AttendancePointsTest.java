@@ -245,14 +245,14 @@ class AttendancePointsTest {
     @Test
     void skippingAMeetingReversesItsPointsAndRemovesItFromStatistics() {
         save(true, true); // +7 on 9 Oct
-        assertThat(dashboardService.student(student.getId()).card().meetingsHeld()).isEqualTo(4);
+        assertThat(dashboardService.student(student.getId(), null).card().meetingsHeld()).isEqualTo(4);
 
         SaveAttendanceResult skipped = attendanceService.skip(OCT_9, "Retreat", adminId);
         assertThat(skipped.netPoints()).isEqualTo(-7);
         assertThat(balance()).isZero();
         assertThat(studentTransactions()).filteredOn(t -> t.getType() == TransactionType.ATTENDANCE_REVERSAL).hasSize(2);
 
-        var card = dashboardService.student(student.getId()).card();
+        var card = dashboardService.student(student.getId(), null).card();
         assertThat(card.meetingsHeld()).isEqualTo(3); // 9 Oct no longer counts
         assertThat(card.serviceCount()).isZero();
         assertThat(attendanceService.forMeeting(OCT_9).skipped()).isTrue();
@@ -268,20 +268,20 @@ class AttendancePointsTest {
         SaveAttendanceResult restored = attendanceService.unskip(OCT_9, adminId);
         assertThat(restored.netPoints()).isEqualTo(7);
         assertThat(balance()).isEqualTo(7);
-        assertThat(dashboardService.student(student.getId()).card().meetingsHeld()).isEqualTo(4);
+        assertThat(dashboardService.student(student.getId(), null).card().meetingsHeld()).isEqualTo(4);
     }
 
     @Test
     void dashboardCardReflectsAttendanceAndPoints() {
         save(true, true);
-        var card = dashboardService.student(student.getId()).card();
+        var card = dashboardService.student(student.getId(), null).card();
 
         assertThat(card.points()).isEqualTo(7);
         assertThat(card.rank()).isEqualTo(1);
         assertThat(card.meetingsHeld()).isEqualTo(4); // 18 Sep .. 9 Oct
         assertThat(card.serviceCount()).isEqualTo(1);
         assertThat(card.massRate()).isEqualTo(25);
-        assertThat(dashboardService.student(student.getId()).attendance()).hasSize(4);
+        assertThat(dashboardService.student(student.getId(), null).attendance()).hasSize(4);
     }
 
     private SaveAttendanceResult save(boolean service, boolean mass) {
