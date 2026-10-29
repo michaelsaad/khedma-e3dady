@@ -8,6 +8,13 @@ spring:
     hikari:
       # Free-tier Postgres (e.g. Neon) allows few connections; this app needs very few.
       maximum-pool-size: ${DB_POOL_SIZE:5}
+      # Neon's free plan only suspends the database (and stops counting compute hours) after
+      # 5 minutes without queries. Hikari's defaults keep 5 connections open and ping each one
+      # every 2 minutes, which kept the database running around the clock. Hold no idle
+      # connections and send no keepalive pings, so it can sleep between real requests.
+      minimum-idle: 0
+      idle-timeout: 60000
+      keepalive-time: 0
   jpa:
     open-in-view: false
     hibernate:
